@@ -1,8 +1,10 @@
-import * as THREE from '../libs/three.js/three.module.js'
-//import { GLTFLoader } from '../libs/three.js/loaders/GLTFLoader.js'
-//import { OrbitControls } from '../libs/three.js/controls/OrbitControls.js';
+import { Water } from '../helperObjects/Water.js';
+import * as THREE from '../libs/three.js/r125/three.module.js'
+import { OrbitControls } from '../libs/three.js/r125/controls/OrbitControls.js';
+import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
+import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
-let renderer = null, scene = null, camera = null, root = null, group = null;
+let renderer = null, scene = null, camera = null, root = null, group = null, water = null;
 
 let objects = [];
 let currentTime = Date.now();
@@ -152,12 +154,12 @@ function createScene(canvas)
     scene = new THREE.Scene();
 
     camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, 1, 4000 );
-    camera.position.set(0, 11, 110);
+    camera.position.set(0, 10, 110);
     scene.add(camera);
 
-        
+
     root = new THREE.Object3D;
-    
+
     spotLight = new THREE.SpotLight (0xffffff);
     spotLight.position.set(0, 20, -10);
     spotLight.target.position.set(0, 0, -2);
@@ -167,11 +169,11 @@ function createScene(canvas)
     spotLight.shadow.camera.near = 1;
     spotLight.shadow.camera.far = 200;
     spotLight.shadow.camera.fov = 45;
-    
+
     spotLight.shadow.mapSize.width = SHADOW_MAP_WIDTH;
     spotLight.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
 
-    ambientLight = new THREE.AmbientLight ( 0x888888 );
+    ambientLight = new THREE.AmbientLight ( 0xffffff);
     root.add(ambientLight);
     
     //loadGLTF();
@@ -194,6 +196,30 @@ function createScene(canvas)
     floor.receiveShadow = true;
     
     scene.add( root );
+
+    //Water applying the flowing water example from three js
+    const waterGeometry = new THREE.PlaneGeometry(200,200);
+    const flowMap = new THREE.TextureLoader().load('../images/water/Water_1_M_Flow.jpg');
+
+    water = new Water(waterGeometry, {
+        scale: 2,
+        textureWidth: 1024,
+        textureHeight: 1024,
+        flowMap: flowMap
+    });
+
+    water.position.y = 1;
+    water.rotation.x = -Math.PI / 2;
+    scene.add(water);
+
+    //Helper
+    const helperGeometry = new THREE.PlaneGeometry( 200, 200);
+	const helperMaterial = new THREE.MeshBasicMaterial( { map: flowMap } );
+	const helper = new THREE.Mesh( helperGeometry, helperMaterial );
+	helper.position.y = 1.01;
+	helper.rotation.x = Math.PI * - 0.5;
+	helper.visible = false;
+	scene.add( helper );
 
     createCube();
     console.log(song.notes[0]._time);
