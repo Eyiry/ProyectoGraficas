@@ -1,4 +1,4 @@
-import * as THREE from '../libs/three.js/r125/three.module.js'
+import * as THREE from '../libs/three.js/three.module.js'
 //import { GLTFLoader } from '../libs/three.js/loaders/GLTFLoader.js'
 //import { OrbitControls } from '../libs/three.js/controls/OrbitControls.js';
 
