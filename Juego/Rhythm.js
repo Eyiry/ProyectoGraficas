@@ -4,11 +4,14 @@ import { OrbitControls } from '../libs/three.js/r125/controls/OrbitControls.js';
 import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
 import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
+import {createEnvironment} from '../juego/createMap.js';
+
 let renderer = null, scene = null, camera = null, root = null, group = null, water = null;
 
 let objects = [];
 let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
+let objectList = []
 
 //Change this to our floor
 let mapUrl = "../images/spruce.png";
@@ -153,7 +156,7 @@ function createScene(canvas)
     
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, 1, 4000 );
+    camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, .5, 4000 );
     camera.position.set(0, 10, 110);
     scene.add(camera);
 
@@ -162,9 +165,10 @@ function createScene(canvas)
 
     spotLight = new THREE.SpotLight (0xffffff);
     spotLight.position.set(0, 20, -10);
-    spotLight.target.position.set(0, 0, -2);
+    spotLight.target.position.set(0, -200, -20);
     root.add(spotLight);
 
+    
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 1;
     spotLight.shadow.camera.far = 200;
@@ -173,7 +177,7 @@ function createScene(canvas)
     spotLight.shadow.mapSize.width = SHADOW_MAP_WIDTH;
     spotLight.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
 
-    ambientLight = new THREE.AmbientLight ( 0xffffff);
+    ambientLight = new THREE.AmbientLight ( 0xffffff, .5);
     root.add(ambientLight);
     
     //loadGLTF();
@@ -184,7 +188,7 @@ function createScene(canvas)
     const map = new THREE.TextureLoader().load(mapUrl);
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
-
+    /*
     const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
     const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
 
@@ -194,7 +198,20 @@ function createScene(canvas)
     group.add( floor );
     floor.castShadow = false;
     floor.receiveShadow = true;
+    */
+    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
+    loadFloor(floorOBJ, objectList);
+    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
+   
+    //loadTree1(tree1,objectList, -30,0,-100, tree1);
+    /*
+   
+*/
+
+    createEnvironment(objectList,scene)
+
     
+
     scene.add( root );
 
     //Water applying the flowing water example from three js
@@ -205,12 +222,12 @@ function createScene(canvas)
         scale: 2,
         textureWidth: 1024,
         textureHeight: 1024,
-        flowMap: flowMap
+        //flowMap: flowMap
     });
 
-    water.position.y = 1;
+    water.position.y = .0;
     water.rotation.x = -Math.PI / 2;
-    scene.add(water);
+    //scene.add(water);
 
     //Helper
     const helperGeometry = new THREE.PlaneGeometry( 200, 200);
@@ -232,8 +249,96 @@ function createCube(){
     let material = new THREE.MeshPhongMaterial({ map: texture });
     let geometry = new THREE.BoxGeometry(4, 4, 4);
     let cube1 = new THREE.Mesh(geometry, material);
-    cube1.position.set(0,10,70)
+    cube1.position.set(0,20,50)
     group.add(cube1);
+}
+
+async function loadFloor(objModelUrl, objectList)
+{
+    try {
+        console.log("loading floor")
+        const object = await new OBJLoader().loadAsync(objModelUrl.obj, onProgress, onError);
+        //let texture = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.map) : null;
+        //let normalMap = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.normalMap) : null;
+        ///let specularMap = objModelUrl.hasOwnProperty('specularMap') ? new THREE.TextureLoader().load(objModelUrl.specularMap) : null;
+
+        console.log("object: ", object);
+
+        object.traverse(function (child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                //child.material.map = texture;
+                //child.material.normalMap = normalMap;
+                //child.material.specularMap = specularMap;
+                child.material.color.setHex(0x0D508B)
+                console.log("Traverse")
+
+            }
+        });
+        object.scale.set(30,7, 30);
+        object.position.z = -100;
+        object.position.x = 0;
+        object.rotation.y = 0;
+        //object.translateY(-20)
+        object.translateY(-20)
+
+        object.translateZ(40)
+
+        object.name = "objObject";
+        objectList.push(object);
+        scene.add(object);
+    }
+    catch (err) {
+        onError(err);
+    }
+
+
+}
+
+async function loadObjMtl(objModelUrl, objectList,x,y,z)
+{
+    try
+    {
+        const mtlLoader = new MTLLoader();
+
+        const materials = await mtlLoader.loadAsync(objModelUrl.mtl, onProgress, onError);
+
+        materials.preload();
+        
+        const objLoader = new OBJLoader();
+
+        objLoader.setMaterials(materials);
+        const object = await objLoader.loadAsync(objModelUrl.obj, onProgress, onError);
+    
+        object.traverse(function (child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
+        object.position.x = x;
+        object.rotation.y = y;
+        object.position.z = z;
+        object.scale.set(10,10, 10);
+
+        objectList.push(object);
+        scene.add(object);
+    }
+    catch (err){
+        onError(err);
+    }
+}
+
+function onError ( err ){ console.error( err ); };
+function onProgress( xhr ) {
+
+    if ( xhr.lengthComputable ) {
+
+        const percentComplete = xhr.loaded / xhr.total * 100;
+        console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
+    }
 }
 
 function resize()
