@@ -200,7 +200,7 @@ function createScene(canvas)
     floor.receiveShadow = true;
     */
     let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
-    loadFloor(floorOBJ, objectList);
+    //loadFloor(floorOBJ, objectList);
     let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
    
     //loadTree1(tree1,objectList, -30,0,-100, tree1);
