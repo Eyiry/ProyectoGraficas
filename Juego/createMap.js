@@ -1,5 +1,6 @@
 import * as THREE from '../libs/three.js/r125/three.module.js'
 import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
+import { Reflector } from '../helperObjects/Reflector.js';
 
 export function createEnvironment(objectList,scene){
     console.log("Creating environment")
@@ -323,11 +324,11 @@ function createIce(objectList, scene){
     let textureDir = '../models/iceTexture/ice.jpg'
     let texture = new  THREE.TextureLoader().load(textureDir)
     const geometry = new THREE.PlaneGeometry( 60, 60,20, 32 );
-    const material = new THREE.MeshBasicMaterial( {map: texture, side: THREE.DoubleSide
-    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: 1.5} );
+    const material = new THREE.MeshPhongMaterial( {map: texture, side: THREE.DoubleSide
+    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: 1, opacity:.9, 
+    transparent:true,} );
     
-    //material.reflectivity = 1;
-    //material.opacity = .5;
+    
     console.log(material)
     const plane = new THREE.Mesh( geometry, material );
     
@@ -357,17 +358,55 @@ function createIce(objectList, scene){
     scene.add( plane2 )
 
 
-    let planeGeometry = new THREE.PlaneBufferGeometry(10, 10);
+    let planeGeometry = new THREE.PlaneBufferGeometry(40, 40);
+    /*
     let options = {
      
         clipBias: 0.03,
         textureWidth: window.innerWidth * window.devicePixelRatio,
         textureHeight: window.innerHeight * window.devicePixelRatio,
         color: 0x889999,
-        recursion: 1
+        recursion: 1,
+
     
     };
-    //let mirror = new THREE.Reflector(planeGeometry, options);
-    //scene.add(mirror);
+    */
+    const textureWidth = window.innerWidth * window.devicePixelRatio;
+    const textureHeight = window.innerHeight * window.devicePixelRatio;
+    let mirror = new Reflector(geometry,  {
+        textureWidth: textureWidth,
+        textureHeight: textureHeight,
+        clipBias: 0.03,
+        encoding: THREE.LinearEncoding,
+        //color: THREE.Color(0x7F7F7F)
+        //transparent: true
+    });
+    mirror.position.x = 0
+    mirror.position.y = 0.1
+    mirror.position.z = 70
 
+    mirror.rotation.x = -Math.PI/2
+    //mirror.rotation.y = Math.PI /2
+    //mirror.rotation.z = Math.PI /2
+
+    scene.add(mirror);
+
+
+    let mirror2 = new Reflector(geometry,  {
+        textureWidth: textureWidth,
+        textureHeight: textureHeight,
+        clipBias: 0.03,
+        encoding: THREE.LinearEncoding,
+        //color: THREE.Color(0x7F7F7F)
+        //transparent: true
+    });
+    mirror2.position.x = 0
+    mirror2.position.y = 0.1
+    mirror2.position.z = 10
+
+    mirror2.rotation.x = -Math.PI/2
+    //mirror.rotation.y = Math.PI /2
+    //mirror.rotation.z = Math.PI /2
+
+    scene.add(mirror2);
 }
