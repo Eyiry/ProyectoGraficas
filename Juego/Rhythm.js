@@ -114,7 +114,9 @@ function followRythm(){
 
 function createScene(canvas) 
 {    
-    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true } );
+    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: true } );
+
+    
 
     renderer.setSize(canvas.width, canvas.height);
 
@@ -159,7 +161,9 @@ function createScene(canvas)
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
 
-    const sky = new THREE.TextureLoader().load(skyUrl);
+    const cubeLoader = new THREE.CubeTextureLoader();
+
+    const sky = cubeLoader.load([skyUrl,skyUrl,skyUrl,skyUrl,skyUrl,skyUrl ]);
     scene.background = sky;
     /*
     const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
@@ -191,11 +195,46 @@ function createScene(canvas)
 }
 
 
-function createCube(x,y) {
+async function createCube(x,y) {
     let geometry = new THREE.BoxGeometry(2, 2, 2);
     let cube = new THREE.Mesh(geometry, material);
     cube.position.set(x, y, 30)
-    cubes.add(cube);
+    //cubes.add(cube);
+    
+
+    let cubito = {obj:'../models/tree/cubito.obj'};
+
+    //var loader = new OBJLoader();
+    const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
+
+    console.log("object: ", object);
+
+    //cube2.position.set(0,0,0)
+    //scene.add(cube2)
+    //cubes.add(cube2)
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            //child.material.map = texture;
+            //child.material.normalMap = normalMap;
+            //child.material.specularMap = specularMap;
+            child.material.color.setHex(0x0D508B)
+            console.log("Traverse")
+
+        }
+    });
+
+    object.scale.set(.5,.5,.5)
+    object.position.x = x
+    object.position.y = y
+    object.position.z = 30
+   
+    object.name = "objCube";
+    cubes.add(object)
+    //objectList.push(object);
+    //scene.add(object);
+   
 }
 
 async function loadFloor(objModelUrl, objectList)

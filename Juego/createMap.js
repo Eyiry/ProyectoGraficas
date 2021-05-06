@@ -324,8 +324,9 @@ function createIce(objectList, scene){
     let textureDir = '../models/iceTexture/ice.jpg'
     let texture = new  THREE.TextureLoader().load(textureDir)
     const geometry = new THREE.PlaneGeometry( 60, 60,20, 32 );
+    
     const material = new THREE.MeshPhongMaterial( {map: texture, side: THREE.DoubleSide
-    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: 1, opacity:.9, 
+    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: .2, opacity:.6, 
     transparent:true,} );
     
     
