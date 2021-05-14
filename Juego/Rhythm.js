@@ -1,128 +1,38 @@
-import { Water } from '../helperObjects/Water.js';
 import * as THREE from '../libs/three.js/r125/three.module.js'
-import { OrbitControls } from '../libs/three.js/r125/controls/OrbitControls.js';
 import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
 import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
-let renderer = null, scene = null, camera = null, root = null, group = null, water = null;
+import {createEnvironment} from '../juego/createMap.js';
+
+let renderer = null, scene = null, camera = null, root = null, group = null, water = null, cubes = null, material = null;
+
+let startTime = Date.now();
+let lastTimeout = 0;
+
+let noteIndex = 0;
+let noteFlag = true;
 
 let objects = [];
-let currentTime = Date.now();
+//let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
+let objectList = []
 
 //Change this to our floor
 let mapUrl = "../images/spruce.png";
+let skyUrl = "../images/skybox/sky.jpeg";
 
 let SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048;
 
 //let modelUrls = ["../models/gltf/Horse.glb", "../models/gltf/Parrot.glb", "../models/gltf/Stork.glb", "../models/gltf/Flamingo.glb"];
 
 var song = {
-    events:[],
-    notes:[{"_time":3.9270829999999997,"_lineIndex":2,"_lineLayer":2,"_type":1,"_cutDirection":0},
-    {"_time":5.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":3},
-    {"_time":7.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":9.927083,"_lineIndex":0,"_lineLayer":1,"_type":0,"_cutDirection":3},
-    {"_time":9.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":2},
-    {"_time":11.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":6},
-    {"_time":13.927083,"_lineIndex":1,"_lineLayer":1,"_type":0,"_cutDirection":8},
-    {"_time":13.927083,"_lineIndex":2,"_lineLayer":2,"_type":1,"_cutDirection":0},
-    {"_time":15.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":17.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":18.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":19.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":3},
-    {"_time":19.927083,"_lineIndex":3,"_lineLayer":2,"_type":3,"_cutDirection":8},
-    {"_time":21.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":23.927083,"_lineIndex":1,"_lineLayer":1,"_type":1,"_cutDirection":2},
-    {"_time":24.098958,"_lineIndex":1,"_lineLayer":2,"_type":3,"_cutDirection":8},
-    {"_time":25.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":27.927083,"_lineIndex":0,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":27.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":27.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":29.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":31.927083,"_lineIndex":0,"_lineLayer":1,"_type":1,"_cutDirection":2},
-    {"_time":31.927083,"_lineIndex":0,"_lineLayer":2,"_type":3,"_cutDirection":8},
-    {"_time":37.927082999999996,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":39.927082999999996,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":2},
-    {"_time":41.927082999999996,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":5},
-    {"_time":43.927082999999996,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":45.927082999999996,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":47.927082999999996,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":49.927082999999996,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":50.927082999999996,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":51.927082999999996,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":53.927082999999996,"_lineIndex":0,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":53.927082999999996,"_lineIndex":0,"_lineLayer":1,"_type":0,"_cutDirection":2},
-    {"_time":55.927082999999996,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":57.927082999999996,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":3},
-    {"_time":57.927082999999996,"_lineIndex":2,"_lineLayer":1,"_type":3,"_cutDirection":8},
-    {"_time":59.927082999999996,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":61.927082999999996,"_lineIndex":0,"_lineLayer":2,"_type":3,"_cutDirection":8},
-    {"_time":61.927082999999996,"_lineIndex":1,"_lineLayer":2,"_type":0,"_cutDirection":0},
-    {"_time":62.927082999999996,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":63.927082999999996,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":64.927083,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":65.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":66.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":67.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":67.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":69.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":69.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":71.927083,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":71.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":73.927083,"_lineIndex":0,"_lineLayer":1,"_type":0,"_cutDirection":4},
-    {"_time":73.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":5},
-    {"_time":75.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":76.927083,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":77.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":78.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":79.927083,"_lineIndex":2,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":80.927083,"_lineIndex":3,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":81.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":83.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":84.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":85.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":86.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":87.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":88.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":89.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":90.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":91.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":3},
-    {"_time":93.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":94.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":95.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":99.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":101.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":7},
-    {"_time":102.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":103.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":105.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":107.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":107.927083,"_lineIndex":1,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":107.927083,"_lineIndex":2,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":109.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":7},
-    {"_time":110.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":111.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":111.927083,"_lineIndex":1,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":111.927083,"_lineIndex":2,"_lineLayer":0,"_type":3,"_cutDirection":8},
-    {"_time":113.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":115.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":116.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":117.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":118.927083,"_lineIndex":3,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":119.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":120.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":0},
-    {"_time":121.927083,"_lineIndex":0,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":122.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":123.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":1},
-    {"_time":125.927083,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":3},
-    {"_time":126.927083,"_lineIndex":1,"_lineLayer":0,"_type":0,"_cutDirection":0},
-    {"_time":127.927083,"_lineIndex":2,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":128.92708299999998,"_lineIndex":2,"_lineLayer":2,"_type":1,"_cutDirection":8},
-    {"_time":129.92708299999998,"_lineIndex":1,"_lineLayer":0,"_type":1,"_cutDirection":1},
-    {"_time":130.92708299999998,"_lineIndex":1,"_lineLayer":2,"_type":1,"_cutDirection":8},
-    {"_time":131.92708299999998,"_lineIndex":0,"_lineLayer":1,"_type":0,"_cutDirection":2},
-    {"_time":131.92708299999998,"_lineIndex":3,"_lineLayer":1,"_type":1,"_cutDirection":3}],
-    obstacles:[{"_time":19.921875,"_duration":6,"_type":0,"_lineIndex":0,"_width":1},{"_time":27.921875,"_duration":4,"_type":0,"_lineIndex":3,"_width":1},{"_time":35.921875,"_duration":2,"_type":1,"_lineIndex":0,"_width":4},{"_time":67.921875,"_duration":0.25,"_type":1,"_lineIndex":0,"_width":4}]
+    events: [],
+    notes: [{ "_time": 3.9270829999999997, "_lineIndex": 2, "_lineLayer": 2, "_type": 1, "_cutDirection": 0 },
+    { "_time": 5.927083, "_lineIndex": 3, "_lineLayer": 1, "_type": 1, "_cutDirection": 3 },
+    { "_time": 7.927083, "_lineIndex": 2, "_lineLayer": 0, "_type": 0, "_cutDirection": 0 },
+    { "_time": 9.927083, "_lineIndex": 0, "_lineLayer": 1, "_type": 0, "_cutDirection": 3 },
+    { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 6 }],
+    obstacles: [{ "_time": 19.921875, "_duration": 6, "_type": 0, "_lineIndex": 0, "_width": 1 }, { "_time": 27.921875, "_duration": 4, "_type": 0, "_lineIndex": 3, "_width": 1 }, { "_time": 35.921875, "_duration": 2, "_type": 1, "_lineIndex": 0, "_width": 4 }, { "_time": 67.921875, "_duration": 0.25, "_type": 1, "_lineIndex": 0, "_width": 4 }]
 }
 
 function main() 
@@ -138,13 +48,75 @@ function main()
 function update() 
 {
     requestAnimationFrame(function() { update(); });
+
+    followRythm();
     
     renderer.render( scene, camera );
 }
 
+
+function followRythm(){
+    
+    if (noteFlag && noteIndex < song.notes.length){
+        let currentTime = Date.now()
+        let nextNote = song.notes[noteIndex]._time*1000;
+        let timeout = (startTime + nextNote - currentTime - lastTimeout);
+        noteFlag = false;
+        setTimeout(() => {
+            let line = song.notes[noteIndex]._lineIndex;
+            let column = song.notes[noteIndex]._lineLayer;
+            let lineNumb = 0;
+            let columnNumb = 0;
+
+            switch(line){
+                case 0:
+                    lineNumb = -6;
+                    break;
+                case 1:
+                    lineNumb = -2;
+                    break;
+                case 2:
+                    lineNumb = 2;
+                    break;
+                case 3:
+                    lineNumb = 6;
+                    break;
+                default:
+                    console.log('Not valid position in line');
+            }
+
+            switch(column){
+                case 0:
+                    columnNumb = 5;
+                    break;
+                case 1:
+                    columnNumb = 8;
+                    break;
+                case 2:
+                    columnNumb = 11;
+                    break;
+                case 3:
+                    columnNumb = 14;
+                    break;
+                default:
+                    console.log('Not valid position in column');
+            }
+            
+            createCube(lineNumb, columnNumb);
+            console.log('Timeout: '+ timeout);
+            noteFlag = true;
+            noteIndex++;
+            
+        }, timeout);
+    }   
+}
+
+
 function createScene(canvas) 
 {    
-    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true } );
+    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: true } );
+
+    
 
     renderer.setSize(canvas.width, canvas.height);
 
@@ -153,7 +125,7 @@ function createScene(canvas)
     
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, 1, 4000 );
+    camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, .5, 4000 );
     camera.position.set(0, 10, 110);
     scene.add(camera);
 
@@ -162,9 +134,10 @@ function createScene(canvas)
 
     spotLight = new THREE.SpotLight (0xffffff);
     spotLight.position.set(0, 20, -10);
-    spotLight.target.position.set(0, 0, -2);
+    spotLight.target.position.set(0, -200, -20);
     root.add(spotLight);
 
+    
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 1;
     spotLight.shadow.camera.far = 200;
@@ -173,7 +146,7 @@ function createScene(canvas)
     spotLight.shadow.mapSize.width = SHADOW_MAP_WIDTH;
     spotLight.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
 
-    ambientLight = new THREE.AmbientLight ( 0xffffff);
+    ambientLight = new THREE.AmbientLight ( 0xffffff, .5);
     root.add(ambientLight);
     
     //loadGLTF();
@@ -181,10 +154,18 @@ function createScene(canvas)
     group = new THREE.Object3D;
     root.add(group);
 
+    cubes = new THREE.Object3D;
+    root.add(cubes);
+
     const map = new THREE.TextureLoader().load(mapUrl);
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
 
+    const cubeLoader = new THREE.CubeTextureLoader();
+
+    const sky = cubeLoader.load([skyUrl,skyUrl,skyUrl,skyUrl,skyUrl,skyUrl ]);
+    scene.background = sky;
+    /*
     const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
     const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
 
@@ -194,46 +175,154 @@ function createScene(canvas)
     group.add( floor );
     floor.castShadow = false;
     floor.receiveShadow = true;
+    */
+    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
+    //loadFloor(floorOBJ, objectList);
+    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
+   
+    //loadTree1(tree1,objectList, -30,0,-100, tree1);
+    /*
+   
+*/
+    let texture = new THREE.TextureLoader().load('../images/companionCube.png');
+    material = new THREE.MeshPhongMaterial({ map: texture });
+    
+    createEnvironment(objectList,scene)
+
     
     scene.add( root );
 
-    //Water applying the flowing water example from three js
-    const waterGeometry = new THREE.PlaneGeometry(200,200);
-    const flowMap = new THREE.TextureLoader().load('../images/water/Water_1_M_Flow.jpg');
-
-    water = new Water(waterGeometry, {
-        scale: 2,
-        textureWidth: 1024,
-        textureHeight: 1024,
-        flowMap: flowMap
-    });
-
-    water.position.y = 1;
-    water.rotation.x = -Math.PI / 2;
-    scene.add(water);
-
-    //Helper
-    const helperGeometry = new THREE.PlaneGeometry( 200, 200);
-	const helperMaterial = new THREE.MeshBasicMaterial( { map: flowMap } );
-	const helper = new THREE.Mesh( helperGeometry, helperMaterial );
-	helper.position.y = 1.01;
-	helper.rotation.x = Math.PI * - 0.5;
-	helper.visible = false;
-	scene.add( helper );
-
-    createCube();
-    console.log(song.notes[0]._time);
-    console.log(currentTime);
 }
 
 
-function createCube(){
-    let texture = new THREE.TextureLoader().load('../images/companionCube.png');
-    let material = new THREE.MeshPhongMaterial({ map: texture });
-    let geometry = new THREE.BoxGeometry(4, 4, 4);
-    let cube1 = new THREE.Mesh(geometry, material);
-    cube1.position.set(0,10,70)
-    group.add(cube1);
+async function createCube(x,y) {
+    let geometry = new THREE.BoxGeometry(2, 2, 2);
+    let cube = new THREE.Mesh(geometry, material);
+    cube.position.set(x, y, 30)
+    //cubes.add(cube);
+    
+
+    let cubito = {obj:'../models/tree/cubito.obj'};
+
+    //var loader = new OBJLoader();
+    const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
+
+    console.log("object: ", object);
+
+    //cube2.position.set(0,0,0)
+    //scene.add(cube2)
+    //cubes.add(cube2)
+    object.traverse(function (child) {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            //child.material.map = texture;
+            //child.material.normalMap = normalMap;
+            //child.material.specularMap = specularMap;
+            child.material.color.setHex(0x0D508B)
+            console.log("Traverse")
+
+        }
+    });
+
+    object.scale.set(.5,.5,.5)
+    object.position.x = x
+    object.position.y = y
+    object.position.z = 30
+   
+    object.name = "objCube";
+    cubes.add(object)
+    //objectList.push(object);
+    //scene.add(object);
+   
+}
+
+async function loadFloor(objModelUrl, objectList)
+{
+    try {
+        console.log("loading floor")
+        const object = await new OBJLoader().loadAsync(objModelUrl.obj, onProgress, onError);
+        //let texture = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.map) : null;
+        //let normalMap = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.normalMap) : null;
+        ///let specularMap = objModelUrl.hasOwnProperty('specularMap') ? new THREE.TextureLoader().load(objModelUrl.specularMap) : null;
+
+        console.log("object: ", object);
+
+        object.traverse(function (child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+                //child.material.map = texture;
+                //child.material.normalMap = normalMap;
+                //child.material.specularMap = specularMap;
+                child.material.color.setHex(0x0D508B)
+                console.log("Traverse")
+
+            }
+        });
+        object.scale.set(30,7, 30);
+        object.position.z = -100;
+        object.position.x = 0;
+        object.rotation.y = 0;
+        //object.translateY(-20)
+        object.translateY(-20)
+
+        object.translateZ(40)
+
+        object.name = "objObject";
+        objectList.push(object);
+        scene.add(object);
+    }
+    catch (err) {
+        onError(err);
+    }
+
+
+}
+
+async function loadObjMtl(objModelUrl, objectList,x,y,z)
+{
+    try
+    {
+        const mtlLoader = new MTLLoader();
+
+        const materials = await mtlLoader.loadAsync(objModelUrl.mtl, onProgress, onError);
+
+        materials.preload();
+        
+        const objLoader = new OBJLoader();
+
+        objLoader.setMaterials(materials);
+        const object = await objLoader.loadAsync(objModelUrl.obj, onProgress, onError);
+    
+        object.traverse(function (child) {
+            if (child.isMesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+        
+        object.position.x = x;
+        object.rotation.y = y;
+        object.position.z = z;
+        object.scale.set(10,10, 10);
+
+        objectList.push(object);
+        scene.add(object);
+    }
+    catch (err){
+        onError(err);
+    }
+}
+
+function onError ( err ){ console.error( err ); };
+function onProgress( xhr ) {
+
+    if ( xhr.lengthComputable ) {
+
+        const percentComplete = xhr.loaded / xhr.total * 100;
+        console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
+    }
 }
 
 function resize()
