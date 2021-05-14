@@ -66,7 +66,10 @@ class Reflector extends Mesh {
 		const material = new ShaderMaterial( {
 			uniforms: UniformsUtils.clone( shader.uniforms ),
 			fragmentShader: shader.fragmentShader,
-			vertexShader: shader.vertexShader
+			vertexShader: shader.vertexShader,
+			
+			transparent: true,
+			opacity: 0.2
 		} );
 
 		material.uniforms[ 'tDiffuse' ].value = renderTarget.texture;
@@ -229,6 +232,7 @@ Reflector.ReflectorShader = {
 
 	fragmentShader: /* glsl */`
 		uniform vec3 color;
+		uniform float opacity;
 		uniform sampler2D tDiffuse;
 		varying vec4 vUv;
 		float blendOverlay( float base, float blend ) {

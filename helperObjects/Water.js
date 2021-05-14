@@ -39,7 +39,7 @@ class Water extends Mesh {
 		const textureHeight = options.textureHeight || 512;
 		const clipBias = options.clipBias || 0;
 		const flowDirection = options.flowDirection || new Vector2( 1, 0 );
-		const flowSpeed = options.flowSpeed || 0.03;
+		const flowSpeed = options.flowSpeed || 0.015;
 		const reflectivity = options.reflectivity || 0.02;
 		const scale = options.scale || 1;
 		const shader = options.shader || Water.WaterShader;
