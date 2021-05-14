@@ -1,7 +1,7 @@
 import * as THREE from '../libs/three.js/r125/three.module.js'
 import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
 import { Reflector } from '../helperObjects/Reflector.js';
-
+//comentario pendejo
 export function createEnvironment(objectList,scene){
     console.log("Creating environment")
     let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
