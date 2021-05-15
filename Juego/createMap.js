@@ -169,6 +169,7 @@ export function createEnvironment(objectList,scene){
 
 
     createIce(objectList, scene)
+    createSkybox(scene)
 
 }
 
@@ -183,7 +184,7 @@ async function loadTree1(objectList,scene ,x,y,z,tree){
         //let normalMap = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.normalMap) : null;
         ///let specularMap = objModelUrl.hasOwnProperty('specularMap') ? new THREE.TextureLoader().load(objModelUrl.specularMap) : null;
 
-        console.log("object: ", object);
+        //console.log("object: ", object);
 
         object.traverse(function (child) {
             if (child.isMesh) {
@@ -193,7 +194,7 @@ async function loadTree1(objectList,scene ,x,y,z,tree){
                 //child.material.normalMap = normalMap;
                 //child.material.specularMap = specularMap;
                 //child.material.color.setHex(0x0D508B)
-                console.log("Traverse")
+                //console.log("Traverse")
 
             }
         });
@@ -226,7 +227,7 @@ async function loadRock(objectList,scene ,x,y,z,tree){
         //let normalMap = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.normalMap) : null;
         ///let specularMap = objModelUrl.hasOwnProperty('specularMap') ? new THREE.TextureLoader().load(objModelUrl.specularMap) : null;
 
-        console.log("object: ", object);
+        //console.log("object: ", object);
 
         object.traverse(function (child) {
             if (child.isMesh) {
@@ -237,7 +238,7 @@ async function loadRock(objectList,scene ,x,y,z,tree){
                 child.material.occlusion = textureOcclusion;
                 //child.material.normalMap = normalMap;
                 //child.material.specularMap = specularMap;
-                console.log("Traverse")
+                //console.log("Traverse")
 
             }
         });
@@ -271,7 +272,7 @@ async function loadWood(objectList,scene ,x,y,z,tree,xr,yr,zr){
         //let normalMap = objModelUrl.hasOwnProperty('normalMap') ? new THREE.TextureLoader().load(objModelUrl.normalMap) : null;
         ///let specularMap = objModelUrl.hasOwnProperty('specularMap') ? new THREE.TextureLoader().load(objModelUrl.specularMap) : null;
 
-        console.log("object: ", object);
+        //console.log("object: ", object);
 
         object.traverse(function (child) {
             if (child.isMesh) {
@@ -284,7 +285,7 @@ async function loadWood(objectList,scene ,x,y,z,tree,xr,yr,zr){
                 //child.material.occlusion = textureOcclusion;
                 //child.material.normalMap = normalMap;
                 //child.material.specularMap = specularMap;
-                console.log("Traverse")
+                //console.log("Traverse")
 
             }
         });
@@ -330,7 +331,7 @@ function createIce(objectList, scene){
     transparent:true,} );
     
     
-    console.log(material)
+    //console.log(material)
     const plane = new THREE.Mesh( geometry, material );
     
     plane.position.x = 0
@@ -410,4 +411,21 @@ function createIce(objectList, scene){
     //mirror.rotation.z = Math.PI /2
 
     scene.add(mirror2);
+}
+
+
+function createSkybox(scene){
+    console.log("creating skybox")
+    const cubeLoader = new THREE.CubeTextureLoader();
+
+    let skyUrl1 = "../images/cubemap/lado1.png";
+    let skyUrl2 = "../images/cubemap/lado2.png";
+    let skyUrl3 = "../images/cubemap/lado3.png";
+    let skyUrl4 = "../images/cubemap/lado4.png";
+    let skyUrl5 = "../images/cubemap/lado5.png";
+    let skyUrl6 = "../images/cubemap/lado6.png";
+
+
+    const sky = cubeLoader.load([skyUrl1,skyUrl2,skyUrl3,skyUrl4,skyUrl5,skyUrl6 ]);
+    scene.background = sky;
 }
