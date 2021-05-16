@@ -6,14 +6,17 @@ import {createEnvironment} from '../juego/createMap.js';
 
 let renderer = null, scene = null, camera = null, root = null, group = null, water = null, cubes = null, material = null;
 
+let raycaster = null, mouse = new THREE.Vector2(), intersected, clicked;
+
+let lastPosition = null;
+
 let startTime = Date.now();
 let lastTimeout = 0;
 
 let noteIndex = 0;
 let noteFlag = true;
 
-let objects = [];
-//let currentTime = Date.now();
+let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
 let objectList = []
 
@@ -52,15 +55,17 @@ function update()
     followRythm();
     
     renderer.render( scene, camera );
+
+    animate();
 }
 
 
 function followRythm(){
     
     if (noteFlag && noteIndex < song.notes.length){
-        let currentTime = Date.now()
+        let momentTime = Date.now()
         let nextNote = song.notes[noteIndex]._time*1000;
-        let timeout = (startTime + nextNote - currentTime - lastTimeout);
+        let timeout = (startTime + nextNote - momentTime - lastTimeout);
         noteFlag = false;
         setTimeout(() => {
             let line = song.notes[noteIndex]._lineIndex;
@@ -165,35 +170,32 @@ function createScene(canvas)
 
     const sky = cubeLoader.load([skyUrl,skyUrl,skyUrl,skyUrl,skyUrl,skyUrl ]);
     scene.background = sky;
-    /*
-    const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
-    const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
-
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -4.02;
-    
-    group.add( floor );
-    floor.castShadow = false;
-    floor.receiveShadow = true;
-    */
-    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
-    //loadFloor(floorOBJ, objectList);
-    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
-   
-    //loadTree1(tree1,objectList, -30,0,-100, tree1);
-    /*
-   
-*/
-    let texture = new THREE.TextureLoader().load('../images/companionCube.png');
-    material = new THREE.MeshPhongMaterial({ map: texture });
     
     createEnvironment(objectList,scene)
+
+    raycaster = new THREE.Raycaster();
+
+    document.addEventListener('pointermove', onDocumentPointerMove);
 
     
     scene.add( root );
 
 }
 
+function animate(){
+    const now = Date.now();
+    const deltat = now - currentTime;
+    currentTime = now;
+
+    for (const cube of cubes.children){
+        if (cube.position.z > 130){
+            cubes.remove(cube);
+            console.log(cubes.children.length);
+        }else{
+            cube.position.z += 0.03 * deltat;
+        }
+    }
+}
 
 async function createCube(x,y) {
     let geometry = new THREE.BoxGeometry(2, 2, 2);
@@ -225,13 +227,13 @@ async function createCube(x,y) {
         }
     });
 
-    object.scale.set(.5,.5,.5)
-    object.position.x = x
-    object.position.y = y
-    object.position.z = 30
+    object.scale.set(.5,.5,.5);
+    object.position.x = x;
+    object.position.y = y;
+    object.position.z = 30;
    
     object.name = "objCube";
-    cubes.add(object)
+    cubes.add(object);
     //objectList.push(object);
     //scene.add(object);
    
@@ -322,6 +324,36 @@ function onProgress( xhr ) {
 
         const percentComplete = xhr.loaded / xhr.total * 100;
         console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
+    }
+}
+
+function onDocumentPointerMove( event ) 
+{
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+
+    raycaster.setFromCamera( mouse, camera );
+
+    const intersects = raycaster.intersectObjects( scene.children );
+
+    if ( intersects.length > 0 ) 
+    {
+        if ( intersected != intersects[ 0 ].object ) 
+        {
+            if ( intersected )
+                intersected.material.emissive.set( intersected.currentHex );
+
+            intersected = intersects[ 0 ].object;
+            intersected.currentHex = intersected.material.emissive.getHex();
+            intersected.material.emissive.set( 0xff0000 );
+        }
+    } 
+    else 
+    {
+        if ( intersected ) 
+            intersected.material.emissive.set( intersected.currentHex );
+
+        intersected = null;
     }
 }
 
