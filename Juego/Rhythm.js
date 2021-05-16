@@ -4,6 +4,14 @@ import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
 import {createEnvironment} from '../juego/createMap.js';
 
+//import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
+//import { RenderPass } from './jsm/postprocessing/RenderPass.js';
+//import { ShaderPass } from './jsm/postprocessing/ShaderPass.js';
+//import { UnrealBloomPass } from './jsm/postprocessing/UnrealBloomPass.js';
+
+///https://github.com/mrdoob/three.js/blob/master/examples/jsm/postprocessing/UnrealBloomPass.js
+
+
 let renderer = null, scene = null, camera = null, root = null, group = null, water = null, cubes = null, material = null;
 
 let raycaster = null, mouse = new THREE.Vector2(), intersected, clicked;
@@ -22,8 +30,6 @@ let objectList = []
 
 //Change this to our floor
 let mapUrl = "../images/spruce.png";
-let skyUrl = "../images/skybox/sky.jpeg";
-
 let SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048;
 
 //let modelUrls = ["../models/gltf/Horse.glb", "../models/gltf/Parrot.glb", "../models/gltf/Stork.glb", "../models/gltf/Flamingo.glb"];
@@ -166,10 +172,28 @@ function createScene(canvas)
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
 
-    const cubeLoader = new THREE.CubeTextureLoader();
+   
+    /*
+    const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
+    const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
 
-    const sky = cubeLoader.load([skyUrl,skyUrl,skyUrl,skyUrl,skyUrl,skyUrl ]);
-    scene.background = sky;
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -4.02;
+    
+    group.add( floor );
+    floor.castShadow = false;
+    floor.receiveShadow = true;
+    */
+    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
+    //loadFloor(floorOBJ, objectList);
+    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
+   
+    //loadTree1(tree1,objectList, -30,0,-100, tree1);
+    /*
+   
+*/
+    let texture = new THREE.TextureLoader().load('../images/companionCube.png');
+    material = new THREE.MeshPhongMaterial({ map: texture });
     
     createEnvironment(objectList,scene)
 
@@ -209,7 +233,7 @@ async function createCube(x,y) {
     //var loader = new OBJLoader();
     const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
 
-    console.log("object: ", object);
+    //console.log("object: ", object);
 
     //cube2.position.set(0,0,0)
     //scene.add(cube2)
@@ -222,7 +246,7 @@ async function createCube(x,y) {
             //child.material.normalMap = normalMap;
             //child.material.specularMap = specularMap;
             child.material.color.setHex(0x0D508B)
-            console.log("Traverse")
+            //console.log("Traverse")
 
         }
     });
