@@ -114,7 +114,7 @@ function followRythm(){
             }
             
             createCube(lineNumb, columnNumb);
-            console.log('Timeout: '+ timeout);
+            //console.log('Timeout: '+ timeout);
             noteFlag = true;
             noteIndex++;
             
@@ -126,9 +126,6 @@ function followRythm(){
 function createScene(canvas) 
 {    
     renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: true } );
-
-    
-
     renderer.setSize(canvas.width, canvas.height);
 
     renderer.shadowMap.enabled = true;
@@ -160,7 +157,6 @@ function createScene(canvas)
     ambientLight = new THREE.AmbientLight ( 0xffffff, .5);
     root.add(ambientLight);
     
-    //loadGLTF();
 
     group = new THREE.Object3D;
     root.add(group);
@@ -172,26 +168,6 @@ function createScene(canvas)
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
 
-   
-    /*
-    const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
-    const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
-
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -4.02;
-    
-    group.add( floor );
-    floor.castShadow = false;
-    floor.receiveShadow = true;
-    */
-    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
-    //loadFloor(floorOBJ, objectList);
-    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
-   
-    //loadTree1(tree1,objectList, -30,0,-100, tree1);
-    /*
-   
-*/
     let texture = new THREE.TextureLoader().load('../images/companionCube.png');
     material = new THREE.MeshPhongMaterial({ map: texture });
     
@@ -214,7 +190,7 @@ function animate(){
     for (const cube of cubes.children){
         if (cube.position.z > 130){
             cubes.remove(cube);
-            console.log(cubes.children.length);
+            //console.log(cubes.children.length);
         }else{
             cube.position.z += 0.03 * deltat;
         }
@@ -222,22 +198,17 @@ function animate(){
 }
 
 async function createCube(x,y) {
-    let geometry = new THREE.BoxGeometry(2, 2, 2);
-    let cube = new THREE.Mesh(geometry, material);
-    cube.position.set(x, y, 30)
-    //cubes.add(cube);
-    
 
+    /*let geometry = new THREE.BoxGeometry(2, 2, 2);
+
+    let cube = new THREE.Mesh(geometry, material);
+    cube.position.set(x, y, 30);
+    cubes.add(cube);*/
+    
     let cubito = {obj:'../models/tree/cubito.obj'};
 
-    //var loader = new OBJLoader();
     const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
 
-    //console.log("object: ", object);
-
-    //cube2.position.set(0,0,0)
-    //scene.add(cube2)
-    //cubes.add(cube2)
     object.traverse(function (child) {
         if (child.isMesh) {
             child.castShadow = true;
@@ -258,8 +229,6 @@ async function createCube(x,y) {
    
     object.name = "objCube";
     cubes.add(object);
-    //objectList.push(object);
-    //scene.add(object);
    
 }
 
@@ -358,24 +327,27 @@ function onDocumentPointerMove( event )
 
     raycaster.setFromCamera( mouse, camera );
 
-    const intersects = raycaster.intersectObjects( scene.children );
+    const intersects = raycaster.intersectObjects( cubes.children , true);
 
     if ( intersects.length > 0 ) 
     {
+        console.log(intersects.length);
         if ( intersected != intersects[ 0 ].object ) 
         {
             if ( intersected )
-                intersected.material.emissive.set( intersected.currentHex );
+                console.log("Circumscision");
 
             intersected = intersects[ 0 ].object;
-            intersected.currentHex = intersected.material.emissive.getHex();
-            intersected.material.emissive.set( 0xff0000 );
+            console.log(intersected);
+            /*intersected.currentHex = intersected.material.emissive.getHex();
+            intersected.material.emissive.set( 0xff0000 );*/
         }
     } 
     else 
     {
         if ( intersected ) 
-            intersected.material.emissive.set( intersected.currentHex );
+            //intersected.material.emissive.set( intersected.currentHex );
+            console.log("Pene");
 
         intersected = null;
     }
