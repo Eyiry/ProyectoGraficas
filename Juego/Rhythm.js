@@ -16,7 +16,8 @@ let renderer = null, scene = null, camera = null, root = null, group = null, wat
 
 let raycaster = null, mouse = new THREE.Vector2(), intersected, clicked;
 
-let lastPosition = null;
+let lastPositionx = 0;
+let lastPositiony = 0;
 
 let startTime = Date.now();
 let lastTimeout = 0;
@@ -40,7 +41,7 @@ var song = {
     { "_time": 5.927083, "_lineIndex": 3, "_lineLayer": 1, "_type": 1, "_cutDirection": 3 },
     { "_time": 7.927083, "_lineIndex": 2, "_lineLayer": 0, "_type": 0, "_cutDirection": 0 },
     { "_time": 9.927083, "_lineIndex": 0, "_lineLayer": 1, "_type": 0, "_cutDirection": 3 },
-    { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 6 }],
+    { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 1 }],
     obstacles: [{ "_time": 19.921875, "_duration": 6, "_type": 0, "_lineIndex": 0, "_width": 1 }, { "_time": 27.921875, "_duration": 4, "_type": 0, "_lineIndex": 3, "_width": 1 }, { "_time": 35.921875, "_duration": 2, "_type": 1, "_lineIndex": 0, "_width": 4 }, { "_time": 67.921875, "_duration": 0.25, "_type": 1, "_lineIndex": 0, "_width": 4 }]
 }
 
@@ -76,6 +77,7 @@ function followRythm(){
         setTimeout(() => {
             let line = song.notes[noteIndex]._lineIndex;
             let column = song.notes[noteIndex]._lineLayer;
+            let cutDirection = song.notes[noteIndex]._cutDirection;
             let lineNumb = 0;
             let columnNumb = 0;
 
@@ -113,7 +115,7 @@ function followRythm(){
                     console.log('Not valid position in column');
             }
             
-            createCube(lineNumb, columnNumb);
+            createCube(lineNumb, columnNumb, cutDirection);
             //console.log('Timeout: '+ timeout);
             noteFlag = true;
             noteIndex++;
@@ -174,6 +176,7 @@ function createScene(canvas)
     createEnvironment(objectList,scene)
 
     raycaster = new THREE.Raycaster();
+    raycaster.far = 20;
 
     document.addEventListener('pointermove', onDocumentPointerMove);
 
@@ -197,15 +200,16 @@ function animate(){
     }
 }
 
-async function createCube(x,y) {
+async function createCube(x,y, cutDirection) {
 
-    /*let geometry = new THREE.BoxGeometry(2, 2, 2);
+    let geometry = new THREE.BoxGeometry(2, 2, 2);
 
     let cube = new THREE.Mesh(geometry, material);
     cube.position.set(x, y, 30);
-    cubes.add(cube);*/
+    cube.direction = cutDirection;
+    cubes.add(cube);
     
-    let cubito = {obj:'../models/tree/cubito.obj'};
+    /*let cubito = {obj:'../models/tree/cubito.obj'};
 
     const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
 
@@ -216,7 +220,6 @@ async function createCube(x,y) {
             //child.material.map = texture;
             //child.material.normalMap = normalMap;
             //child.material.specularMap = specularMap;
-            child.material.color.setHex(0x0D508B)
             //console.log("Traverse")
 
         }
@@ -228,7 +231,7 @@ async function createCube(x,y) {
     object.position.z = 30;
    
     object.name = "objCube";
-    cubes.add(object);
+    cubes.add(object);*/
    
 }
 
@@ -324,10 +327,25 @@ function onDocumentPointerMove( event )
 {
     mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
     mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
+    
     raycaster.setFromCamera( mouse, camera );
 
     const intersects = raycaster.intersectObjects( cubes.children , true);
+
+    let positionX = null;
+    let positionY = null
+
+    if(mouse.x <= lastPositionx){
+        positionX = 0;
+    }else{
+        positionX = 1;
+    }
+
+    if(mouse.y <= lastPositiony){
+        positionY = 2;
+    }else{
+        positionY = 3;
+    }
 
     if ( intersects.length > 0 ) 
     {
@@ -339,6 +357,21 @@ function onDocumentPointerMove( event )
 
             intersected = intersects[ 0 ].object;
             console.log(intersected);
+            if (intersected.direction < 2){
+                if (intersected.direction == positionX){
+                    console.log("Good job");
+                }else{
+                    console.log("Wrong direction")
+                }
+            }else{
+                if (intersected.direction == positionY){
+                    console.log("Good job");
+                }else{
+                    console.log("Wrong direction");
+                }
+            }
+
+            cubes.remove(intersected);
             /*intersected.currentHex = intersected.material.emissive.getHex();
             intersected.material.emissive.set( 0xff0000 );*/
         }
@@ -351,6 +384,9 @@ function onDocumentPointerMove( event )
 
         intersected = null;
     }
+
+    lastPositionx = mouse.x;
+    lastPositiony = mouse.y;
 }
 
 function resize()
