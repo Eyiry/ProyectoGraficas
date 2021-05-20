@@ -6,7 +6,7 @@ import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
 
 //import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
-import {createEnvironment} from '../juego/createMap.js';
+import {createEnvironment} from './createMap.js';
 
 import { EffectComposer } from '../three.js/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.js';

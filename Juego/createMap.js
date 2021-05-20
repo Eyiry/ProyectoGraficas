@@ -324,15 +324,14 @@ function onProgress( xhr ) {
         console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
     }
 }
-
 function createIce(objectList, scene){
     console.log("Creating Ice")
-    let textureDir = '../models/iceTexture/ice.jpg'
+    let textureDir = '../models/iceTexture/Ice.jpg'
     let texture = new  THREE.TextureLoader().load(textureDir)
     const geometry = new THREE.PlaneGeometry( 60, 60,20, 32 );
     
     const material = new THREE.MeshPhongMaterial( {map: texture, side: THREE.DoubleSide
-    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: .2, opacity:.6, 
+    ,envMap: scene.background, combine: THREE.MixOperation,reflectivity: .2, opacity:.8, 
     transparent:true,} );
     
     
