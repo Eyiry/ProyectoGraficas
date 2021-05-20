@@ -14,14 +14,18 @@ import {createEnvironment} from '../juego/createMap.js';
 
 let renderer = null, scene = null, camera = null, root = null, group = null, water = null, cubes = null, material = null;
 
+let raycaster = null, mouse = new THREE.Vector2(), intersected, clicked;
+
+let lastPositionx = 0;
+let lastPositiony = 0;
+
 let startTime = Date.now();
 let lastTimeout = 0;
 
 let noteIndex = 0;
 let noteFlag = true;
 
-let objects = [];
-//let currentTime = Date.now();
+let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
 let objectList = []
 
@@ -37,7 +41,7 @@ var song = {
     { "_time": 5.927083, "_lineIndex": 3, "_lineLayer": 1, "_type": 1, "_cutDirection": 3 },
     { "_time": 7.927083, "_lineIndex": 2, "_lineLayer": 0, "_type": 0, "_cutDirection": 0 },
     { "_time": 9.927083, "_lineIndex": 0, "_lineLayer": 1, "_type": 0, "_cutDirection": 3 },
-    { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 6 }],
+    { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 1 }],
     obstacles: [{ "_time": 19.921875, "_duration": 6, "_type": 0, "_lineIndex": 0, "_width": 1 }, { "_time": 27.921875, "_duration": 4, "_type": 0, "_lineIndex": 3, "_width": 1 }, { "_time": 35.921875, "_duration": 2, "_type": 1, "_lineIndex": 0, "_width": 4 }, { "_time": 67.921875, "_duration": 0.25, "_type": 1, "_lineIndex": 0, "_width": 4 }]
 }
 
@@ -58,19 +62,22 @@ function update()
     followRythm();
     
     renderer.render( scene, camera );
+
+    animate();
 }
 
 
 function followRythm(){
     
     if (noteFlag && noteIndex < song.notes.length){
-        let currentTime = Date.now()
+        let momentTime = Date.now()
         let nextNote = song.notes[noteIndex]._time*1000;
-        let timeout = (startTime + nextNote - currentTime - lastTimeout);
+        let timeout = (startTime + nextNote - momentTime - lastTimeout);
         noteFlag = false;
         setTimeout(() => {
             let line = song.notes[noteIndex]._lineIndex;
             let column = song.notes[noteIndex]._lineLayer;
+            let cutDirection = song.notes[noteIndex]._cutDirection;
             let lineNumb = 0;
             let columnNumb = 0;
 
@@ -108,8 +115,8 @@ function followRythm(){
                     console.log('Not valid position in column');
             }
             
-            createCube(lineNumb, columnNumb);
-            console.log('Timeout: '+ timeout);
+            createCube(lineNumb, columnNumb, cutDirection);
+            //console.log('Timeout: '+ timeout);
             noteFlag = true;
             noteIndex++;
             
@@ -121,9 +128,6 @@ function followRythm(){
 function createScene(canvas) 
 {    
     renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: true } );
-
-    
-
     renderer.setSize(canvas.width, canvas.height);
 
     renderer.shadowMap.enabled = true;
@@ -155,7 +159,6 @@ function createScene(canvas)
     ambientLight = new THREE.AmbientLight ( 0xffffff, .5);
     root.add(ambientLight);
     
-    //loadGLTF();
 
     group = new THREE.Object3D;
     root.add(group);
@@ -167,54 +170,49 @@ function createScene(canvas)
     map.wrapS = map.wrapT = THREE.RepeatWrapping;
     map.repeat.set(8, 8);
 
-   
-    /*
-    const planeGeometry = new THREE.PlaneGeometry(200, 200, 50, 50);
-    const floor = new THREE.Mesh(planeGeometry, new THREE.MeshPhongMaterial({map:map, side:THREE.DoubleSide}));
-
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -4.02;
-    
-    group.add( floor );
-    floor.castShadow = false;
-    floor.receiveShadow = true;
-    */
-    let floorOBJ = {obj:'../models/floor/pisoLowPol.obj'};
-    //loadFloor(floorOBJ, objectList);
-    let tree1 = {obj:'../models/tree/individualTrees/_1_tree.obj', map: '../models/tree/individualTrees/_1_tree.png'};
-   
-    //loadTree1(tree1,objectList, -30,0,-100, tree1);
-    /*
-   
-*/
     let texture = new THREE.TextureLoader().load('../images/companionCube.png');
     material = new THREE.MeshPhongMaterial({ map: texture });
     
     createEnvironment(objectList,scene)
+
+    raycaster = new THREE.Raycaster();
+    raycaster.far = 20;
+
+    document.addEventListener('pointermove', onDocumentPointerMove);
 
     
     scene.add( root );
 
 }
 
+function animate(){
+    const now = Date.now();
+    const deltat = now - currentTime;
+    currentTime = now;
 
-async function createCube(x,y) {
+    for (const cube of cubes.children){
+        if (cube.position.z > 130){
+            cubes.remove(cube);
+            //console.log(cubes.children.length);
+        }else{
+            cube.position.z += 0.03 * deltat;
+        }
+    }
+}
+
+async function createCube(x,y, cutDirection) {
+
     let geometry = new THREE.BoxGeometry(2, 2, 2);
+
     let cube = new THREE.Mesh(geometry, material);
-    cube.position.set(x, y, 30)
-    //cubes.add(cube);
+    cube.position.set(x, y, 30);
+    cube.direction = cutDirection;
+    cubes.add(cube);
     
+    /*let cubito = {obj:'../models/tree/cubito.obj'};
 
-    let cubito = {obj:'../models/tree/cubito.obj'};
-
-    //var loader = new OBJLoader();
     const object = await new OBJLoader().loadAsync(cubito.obj, onProgress, onError);
 
-    //console.log("object: ", object);
-
-    //cube2.position.set(0,0,0)
-    //scene.add(cube2)
-    //cubes.add(cube2)
     object.traverse(function (child) {
         if (child.isMesh) {
             child.castShadow = true;
@@ -222,21 +220,18 @@ async function createCube(x,y) {
             //child.material.map = texture;
             //child.material.normalMap = normalMap;
             //child.material.specularMap = specularMap;
-            child.material.color.setHex(0x0D508B)
             //console.log("Traverse")
 
         }
     });
 
-    object.scale.set(.5,.5,.5)
-    object.position.x = x
-    object.position.y = y
-    object.position.z = 30
+    object.scale.set(.5,.5,.5);
+    object.position.x = x;
+    object.position.y = y;
+    object.position.z = 30;
    
     object.name = "objCube";
-    cubes.add(object)
-    //objectList.push(object);
-    //scene.add(object);
+    cubes.add(object);*/
    
 }
 
@@ -326,6 +321,72 @@ function onProgress( xhr ) {
         const percentComplete = xhr.loaded / xhr.total * 100;
         console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
     }
+}
+
+function onDocumentPointerMove( event ) 
+{
+    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+    
+    raycaster.setFromCamera( mouse, camera );
+
+    const intersects = raycaster.intersectObjects( cubes.children , true);
+
+    let positionX = null;
+    let positionY = null
+
+    if(mouse.x <= lastPositionx){
+        positionX = 0;
+    }else{
+        positionX = 1;
+    }
+
+    if(mouse.y <= lastPositiony){
+        positionY = 2;
+    }else{
+        positionY = 3;
+    }
+
+    if ( intersects.length > 0 ) 
+    {
+        console.log(intersects.length);
+        if ( intersected != intersects[ 0 ].object ) 
+        {
+            if ( intersected )
+                console.log("Circumscision");
+
+            intersected = intersects[ 0 ].object;
+            console.log(intersected);
+            if (intersected.direction < 2){
+                if (intersected.direction == positionX){
+                    console.log("Good job");
+                }else{
+                    console.log("Wrong direction")
+                }
+            }else{
+                if (intersected.direction == positionY){
+                    console.log("Good job");
+                }else{
+                    console.log("Wrong direction");
+                }
+            }
+
+            cubes.remove(intersected);
+            /*intersected.currentHex = intersected.material.emissive.getHex();
+            intersected.material.emissive.set( 0xff0000 );*/
+        }
+    } 
+    else 
+    {
+        if ( intersected ) 
+            //intersected.material.emissive.set( intersected.currentHex );
+            console.log("Pene");
+
+        intersected = null;
+    }
+
+    lastPositionx = mouse.x;
+    lastPositiony = mouse.y;
 }
 
 function resize()
