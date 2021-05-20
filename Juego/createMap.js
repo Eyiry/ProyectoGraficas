@@ -1,5 +1,10 @@
-import * as THREE from '../libs/three.js/r125/three.module.js'
-import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
+//import * as THREE from '../libs/three.js/r125/three.module.js'
+import * as THREE from '../three.js/build/three.module.js';
+
+//import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
+import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
+
+
 import { Reflector } from '../helperObjects/Reflector.js';
 //comentario pendejo
 export function createEnvironment(objectList,scene){

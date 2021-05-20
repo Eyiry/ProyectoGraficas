@@ -1,13 +1,20 @@
-import * as THREE from '../libs/three.js/r125/three.module.js'
-import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
-import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
+//import * as THREE from '../libs/three.js/r125/three.module.js'
+import * as THREE from '../three.js/build/three.module.js';
+
+//import { OBJLoader } from '../libs/three.js/r125/loaders/OBJLoader.js';
+import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
+
+//import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
 import {createEnvironment} from '../juego/createMap.js';
 
-//import { EffectComposer } from './jsm/postprocessing/EffectComposer.js';
-//import { RenderPass } from './jsm/postprocessing/RenderPass.js';
-//import { ShaderPass } from './jsm/postprocessing/ShaderPass.js';
-//import { UnrealBloomPass } from './jsm/postprocessing/UnrealBloomPass.js';
+import { EffectComposer } from '../three.js/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.js';
+import { GlitchPass } from '../three.js/examples/jsm/postprocessing/GlitchPass.js';
+import { ShaderPass } from '../three.js/examples/jsm/postprocessing/ShaderPass.js';
+import {UnrealBloomPass} from '../three.js/examples/jsm/postprocessing/UnrealBloomPass.js'
+
+
 
 ///https://github.com/mrdoob/three.js/blob/master/examples/jsm/postprocessing/UnrealBloomPass.js
 
@@ -32,8 +39,27 @@ let objectList = []
 //Change this to our floor
 let mapUrl = "../images/spruce.png";
 let SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048;
+const darkMaterial = new THREE.MeshBasicMaterial( { color: "black" } );
+const ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
 
 //let modelUrls = ["../models/gltf/Horse.glb", "../models/gltf/Parrot.glb", "../models/gltf/Stork.glb", "../models/gltf/Flamingo.glb"];
+
+////COSAS PARA EL BLOOM
+const materials = {};
+let bloomComposer;
+let finalComposer;
+let bloomLayer;
+
+const params = {
+    exposure: 3,
+    bloomStrength: .5,
+    bloomThreshold: 0,
+    bloomRadius: 1,
+    scene: "Scene with Glow"
+};
+
+
+
 
 var song = {
     events: [],
@@ -60,10 +86,13 @@ function update()
     requestAnimationFrame(function() { update(); });
 
     followRythm();
-    
-    renderer.render( scene, camera );
-
     animate();
+
+    //renderer.render( scene, camera );
+    renderBloom(true);
+
+    // render the entire scene, then render bloom scene on top
+    finalComposer.render();
 }
 
 
@@ -127,7 +156,7 @@ function followRythm(){
 
 function createScene(canvas) 
 {    
-    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: true } );
+    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: false } );
     renderer.setSize(canvas.width, canvas.height);
 
     renderer.shadowMap.enabled = true;
@@ -139,12 +168,65 @@ function createScene(canvas)
     camera.position.set(0, 10, 110);
     scene.add(camera);
 
+    ///BLOOM
+    
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+
+
+   
+    bloomLayer = new THREE.Layers();
+    bloomLayer.set( BLOOM_SCENE );
+
+    renderer.toneMapping = THREE.ReinhardToneMapping;
+    document.body.appendChild( renderer.domElement );
+    bloomComposer = new EffectComposer( renderer );    
+
+    bloomComposer .setSize(
+        window.innerWidth * window.devicePixelRatio,
+        window.innerHeight * window.devicePixelRatio
+      );
+    const renderPass = new RenderPass( scene, camera );
+    bloomComposer.addPass( renderPass );
+
+    const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+    bloomPass.threshold = params.bloomThreshold;
+    bloomPass.strength = params.bloomStrength;
+    bloomPass.radius = params.bloomRadius;
+  
+
+    console.log("BLOOOOOOOOOOOOMMMMMMMMMMM")
+    console.log(bloomPass);
+    
+    bloomComposer.renderToScreen = false;
+    bloomComposer.addPass(bloomPass);
+
+    
+    const finalPass = new ShaderPass(
+        new THREE.ShaderMaterial( {
+            uniforms: {
+                baseTexture: { value: null },
+                bloomTexture: { value: bloomComposer.renderTarget2.texture }
+            },
+            vertexShader: document.getElementById( 'vertexshader' ).textContent,
+            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+            defines: {}
+        } ), "baseTexture"
+    );
+    finalPass.needsSwap = true;
+    finalComposer = new EffectComposer( renderer );
+    finalComposer.addPass( renderPass );
+    finalComposer.setSize( width, height );
+    finalComposer.addPass( finalPass );
+    ///TERMINA BLOOM
+
+
 
     root = new THREE.Object3D;
 
     spotLight = new THREE.SpotLight (0xffffff);
-    spotLight.position.set(0, 20, -10);
-    spotLight.target.position.set(0, -200, -20);
+    spotLight.position.set(0, 20, 150);
+    spotLight.target.position.set(0, -100, -60);
     root.add(spotLight);
 
     
@@ -156,7 +238,7 @@ function createScene(canvas)
     spotLight.shadow.mapSize.width = SHADOW_MAP_WIDTH;
     spotLight.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
 
-    ambientLight = new THREE.AmbientLight ( 0xffffff, .5);
+    ambientLight = new THREE.AmbientLight ( 0xD8BFD8, .35);
     root.add(ambientLight);
     
 
@@ -207,6 +289,8 @@ async function createCube(x,y, cutDirection) {
     let cube = new THREE.Mesh(geometry, material);
     cube.position.set(x, y, 30);
     cube.direction = cutDirection;
+    cube.layers.enable(BLOOM_SCENE);
+
     cubes.add(cube);
     
     /*let cubito = {obj:'../models/tree/cubito.obj'};
@@ -380,13 +464,61 @@ function onDocumentPointerMove( event )
     {
         if ( intersected ) 
             //intersected.material.emissive.set( intersected.currentHex );
-            console.log("Pene");
+            console.log("Entre");
 
         intersected = null;
     }
 
     lastPositionx = mouse.x;
     lastPositiony = mouse.y;
+}
+
+function renderBloom( mask ) {
+
+    if ( mask === true ) {
+        scene.traverse( darkenNonBloomed );
+        bloomComposer.render();
+        scene.traverse( restoreMaterial );
+
+    } else {
+
+        camera.layers.set( BLOOM_SCENE );
+        bloomComposer.render();
+        camera.layers.set( ENTIRE_SCENE );
+
+    }
+
+}
+
+function darkenNonBloomed( obj ) {
+        
+    if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
+
+        materials[ obj.uuid ] = obj.material;
+        obj.material = darkMaterial;
+        
+    }
+
+}
+
+function restoreMaterial( obj ) {
+
+    if ( materials[ obj.uuid ] ) {
+
+        obj.material = materials[ obj.uuid ];
+        delete materials[ obj.uuid ];
+
+    }
+
+}
+function disposeMaterial( obj ) {
+
+    if ( obj.material ) {
+
+        obj.material.dispose();
+
+    }
+
 }
 
 function resize()

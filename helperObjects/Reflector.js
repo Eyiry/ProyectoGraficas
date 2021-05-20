@@ -14,7 +14,7 @@ import {
 	Vector3,
 	Vector4,
 	WebGLRenderTarget
-} from '../libs/three.js/r125/three.module.js';
+} from '../three.js/build/three.module.js';
 
 class Reflector extends Mesh {
 
