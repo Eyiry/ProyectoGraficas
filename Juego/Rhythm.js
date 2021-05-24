@@ -13,8 +13,7 @@ import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.j
 import { GlitchPass } from '../three.js/examples/jsm/postprocessing/GlitchPass.js';
 import { ShaderPass } from '../three.js/examples/jsm/postprocessing/ShaderPass.js';
 import {UnrealBloomPass} from '../three.js/examples/jsm/postprocessing/UnrealBloomPass.js'
-
-
+import { Pass } from '../three.js/examples/jsm/postprocessing/Pass.js';
 
 ///https://github.com/mrdoob/three.js/blob/master/examples/jsm/postprocessing/UnrealBloomPass.js
 
@@ -50,6 +49,29 @@ let bloomComposer;
 let finalComposer;
 let bloomLayer;
 
+
+let arrow;
+let cylinder;
+let planeDetector;
+// Physics variables
+const gravityConstant = 0;
+let collisionConfiguration;
+let dispatcher;
+let broadphase;
+let solver;
+let softBodySolver;
+let physicsWorld;
+let rigidBodies = [];
+let margin = 0.05;
+let mass = 0.5;
+let hinge;
+let rope;
+let transformAux1;
+const clock = new THREE.Clock();
+
+
+
+let armMovement = 0;
 const params = {
     exposure: 3,
     bloomStrength: .5,
@@ -92,6 +114,13 @@ function update()
     renderBloom(true);
 
     // render the entire scene, then render bloom scene on top
+    //console.log(camera.position)
+    //console.log("raycaster direction", raycaster.ray.direction, "origin", raycaster.ray.origin)
+    //console.log(cylinder.position)
+    updateLine()
+    const deltaTime = clock.getDelta();
+    //console.log(physicsWorld.)
+    updatePhysics( deltaTime );
     finalComposer.render();
 }
 
@@ -259,11 +288,62 @@ function createScene(canvas)
 
     raycaster = new THREE.Raycaster();
     raycaster.far = 20;
+    raycaster.layers.enable(BLOOM_SCENE)
 
     document.addEventListener('pointermove', onDocumentPointerMove);
 
     
     scene.add( root );
+    createLine(scene)
+    setupPhysicsWorld()
+
+
+}
+
+function createLine(scene){
+  
+    let arrow = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000) 
+    arrow.layers.enable(BLOOM_SCENE)
+
+    const geometry = new THREE.CylinderGeometry( .01, .01, 1, 32 );
+
+    
+    const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
+    
+    cylinder = new THREE.Mesh(new THREE.BoxBufferGeometry(), new THREE.MeshNormalMaterial());
+    cylinder.scale.set(.2,.2,40)
+
+    cylinder.position.x = 0
+    cylinder.position.y = 9
+    cylinder.position.z = 108
+    
+    planeDetector = new THREE.Plane(new THREE.Vector3(0, 0, 1), 8);
+    //planeDetector.position.z = 90
+    //planeDetector.position.y = 10
+    scene.add( planeDetector );
+
+
+    //cylinder.rotation.z = Math.PI;
+
+    cylinder.layers.enable(BLOOM_SCENE)
+    scene.add( cylinder );
+    //scene.add(arrow);    
+}
+
+function updateLine(){
+    //console.log(raycaster.ray.direction.x * 180 /Math.PI)
+    //console.log(raycaster.ray.direction.y * 180 /Math.PI)
+    //console.log(raycaster.ray.direction.z * 180 /Math.PI)
+    //console.log(raycaster.ray.direction)
+    var pointOfIntersection = new THREE.Vector3();
+    raycaster.ray.intersectPlane(planeDetector, pointOfIntersection);
+
+    //console.log(pointOfIntersection)
+
+    cylinder.lookAt(pointOfIntersection)
+
+   
+
 
 }
 
@@ -271,7 +351,22 @@ function animate(){
     const now = Date.now();
     const deltat = now - currentTime;
     currentTime = now;
+    //console.log(cubes)
+    //console.log(rigidBodies)
+    /*
+    for (let rig of rigidBodies){
+        if (rig.position.z > 130){
+            rigidBodies.remove(rig)
+        }else{
+            console.log(rig.position.z)            
+            rig.position.z += 0.3 * deltat;
+            console.log(rig.position.z)            
 
+        }
+    }
+    */
+
+    
     for (const cube of cubes.children){
         if (cube.position.z > 130){
             cubes.remove(cube);
@@ -280,6 +375,18 @@ function animate(){
             cube.position.z += 0.03 * deltat;
         }
     }
+    
+   /*
+    for (const threeObject of rigidBodies.children){
+        if (threeObject.position.z > 130){
+            rigidBodies.remove(threeObject);
+            //console.log(cubes.children.length);
+        }else{
+            threeObject.position.z += 0.03 * deltat;
+        }
+    }
+    */
+
 }
 
 async function createCube(x,y, cutDirection) {
@@ -290,6 +397,14 @@ async function createCube(x,y, cutDirection) {
     cube.position.set(x, y, 30);
     cube.direction = cutDirection;
     cube.layers.enable(BLOOM_SCENE);
+
+
+    const shape = new Ammo.btBoxShape( new Ammo.btVector3( 1, 1, 1 ) );
+    shape.setMargin( margin );
+    const quat = new THREE.Quaternion();
+    quat.set( 0, 0, 0, 1 );
+
+    createRigidBody( cube, shape, mass, cube.position, quat );
 
     cubes.add(cube);
     
@@ -516,6 +631,124 @@ function disposeMaterial( obj ) {
     if ( obj.material ) {
 
         obj.material.dispose();
+
+    }
+
+}
+
+function setupPhysicsWorld(){
+
+    Ammo().then( function ( AmmoLib ) {
+
+        Ammo = AmmoLib;
+	// Physics configuration
+
+    collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+    dispatcher = new Ammo.btCollisionDispatcher( collisionConfiguration );
+    broadphase = new Ammo.btDbvtBroadphase();
+    solver = new Ammo.btSequentialImpulseConstraintSolver();
+    softBodySolver = new Ammo.btDefaultSoftBodySolver();
+    physicsWorld = new Ammo.btSoftRigidDynamicsWorld( dispatcher, broadphase, solver, collisionConfiguration, softBodySolver );
+    physicsWorld.setGravity( new Ammo.btVector3( 0, gravityConstant, 0 ) );
+    physicsWorld.getWorldInfo().set_m_gravity( new Ammo.btVector3( 0, gravityConstant, 0 ) );
+
+    transformAux1 = new Ammo.btTransform();
+
+    } );
+
+    
+}
+function createRigidBody( threeObject, physicsShape, mass, pos, quat ) {
+
+    threeObject.position.copy( pos );
+    threeObject.quaternion.copy( quat );
+
+    const transform = new Ammo.btTransform();
+    transform.setIdentity();
+    transform.setOrigin( new Ammo.btVector3( pos.x, pos.y, pos.z ) );
+    transform.setRotation( new Ammo.btQuaternion( quat.x, quat.y, quat.z, quat.w ) );
+    const motionState = new Ammo.btDefaultMotionState( transform );
+
+    const localInertia = new Ammo.btVector3( 0, 0, 0 );
+    physicsShape.calculateLocalInertia( mass, localInertia );
+
+    const rbInfo = new Ammo.btRigidBodyConstructionInfo( mass, motionState, physicsShape, localInertia );
+    const body = new Ammo.btRigidBody( rbInfo );
+
+    threeObject.userData.physicsBody = body;
+
+    scene.add( threeObject );
+
+    if ( mass > 0 ) {
+
+        rigidBodies.push( threeObject );
+
+        // Disable deactivation
+        body.setActivationState( 4 );
+        body.setLinearVelocity( new Ammo.btVector3(0,0,30) );
+
+    }
+
+    physicsWorld.addRigidBody( body );
+
+}
+
+function createRandomColor() {
+
+    return Math.floor( Math.random() * ( 1 << 24 ) );
+
+}
+
+function createMaterial() {
+
+    return new THREE.MeshPhongMaterial( { color: createRandomColor() } );
+
+}
+
+
+function updatePhysics( deltaTime ) {
+    /*
+    // Hinge control
+    hinge.enableAngularMotor( true, 1.5 * armMovement, 50 );
+
+    // Step world
+
+    // Update rope
+    const softBody = rope.userData.physicsBody;
+    const ropePositions = rope.geometry.attributes.position.array;
+    const numVerts = ropePositions.length / 3;
+    const nodes = softBody.get_m_nodes();
+    let indexFloat = 0;
+
+    for ( let i = 0; i < numVerts; i ++ ) {
+
+        const node = nodes.at( i );
+        const nodePos = node.get_m_x();
+        ropePositions[ indexFloat ++ ] = nodePos.x();
+        ropePositions[ indexFloat ++ ] = nodePos.y();
+        ropePositions[ indexFloat ++ ] = nodePos.z();
+
+    }
+
+    rope.geometry.attributes.position.needsUpdate = true;
+    */
+    // Update rigid bodies
+    physicsWorld.stepSimulation( deltaTime, 10 );
+
+    for ( let i = 0, il = rigidBodies.length; i < il; i ++ ) {
+
+        const objThree = rigidBodies[ i ];
+        const objPhys = objThree.userData.physicsBody;
+        const ms = objPhys.getMotionState();
+        if ( ms ) {
+            //console.log(objThree)
+            ms.getWorldTransform( transformAux1 );
+            const p = transformAux1.getOrigin();
+            const q = transformAux1.getRotation();          
+            objThree.position.set( p.x(), p.y(), p.z());
+            objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
+
+        }
 
     }
 
