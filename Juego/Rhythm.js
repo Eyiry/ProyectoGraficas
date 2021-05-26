@@ -451,9 +451,7 @@ async function createCube(x,y, cutDirection) {
     pos.set( x, y, 30 );
     quat.set( 0, 0, 0, 1 );
     const towerMass = 1000;
-    const towerHalfExtents = new THREE.Vector3( 2, 5, 2 );
-    pos.set( - 8, 5, 0 );
-    quat.set( 0, 0, 0, 1 );
+    const towerHalfExtents = new THREE.Vector3( 1.5, 1.5, 1.5 );
     createObject( towerMass, towerHalfExtents, pos, quat, createMaterial( 0xB03014 ) );
     console.log("crea cubito")
 
@@ -946,7 +944,7 @@ function updatePhysics( deltaTime ) {
         const collided1 = userData1 ? userData1.collided : false;
 
         if ( ( ! breakable0 && ! breakable1 ) || ( collided0 && collided1 ) ) {
-            console.log("continue")
+            //console.log("continue")
             continue;
 
         }
@@ -1041,17 +1039,16 @@ function updatePhysics( deltaTime ) {
 
 }
 function createObject( mass, halfExtents, pos, quat, material ) {
-
     const object = new THREE.Mesh( new THREE.BoxGeometry( halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2 ), material );
     object.position.copy( pos );
     object.quaternion.copy( quat );
     convexBreaker.prepareBreakableObject( object, mass, new THREE.Vector3(), new THREE.Vector3(), true );
     createDebrisFromBreakableObject( object );
-    console.log("creacubo")
 
 
 }
 function createDebrisFromBreakableObject( object ) {
+    console.log("debris")
     object.castShadow = true;
     object.receiveShadow = true;
 
