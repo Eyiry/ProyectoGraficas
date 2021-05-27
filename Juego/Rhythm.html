@@ -3,6 +3,8 @@
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Three.js Animations</title>
 <link rel="stylesheet" href="../css/cssJuego.css" />
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Balsamiq+Sans:ital,wght@1,700&display=swap" rel="stylesheet">
 <script type="module" src="Rhythm.js"></script>
 <script src="../three.js/examples/js/libs/ammo.wasm.js"></script>
 
@@ -18,6 +20,16 @@
 
 </head>
 <body>
+	<div>
+		<p id="scorePoints">0</p>
+		<p id="scoreText">Score</p>
+	</div>
+
+	<div>
+		<p id="streakPoints">0X</p>
+		<p id="streakText">Combo</p>
+	</div>
+
     <canvas id="webglcanvas"></canvas>
     <script type="x-shader/x-vertex" id="vertexshader">
 

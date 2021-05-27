@@ -6,7 +6,7 @@ import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
 
 //import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
-import {createEnvironment} from './createMap.js';
+import { createEnvironment } from './createMap.js';
 
 import { EffectComposer } from '../three.js/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.js';
@@ -38,10 +38,19 @@ let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
 let objectList = []
 
+//Score and UI references
+let scoreReference = null, comboReference = null;
+let score = 0;
+
+//Combo multiplier stuff
+let combo = 0;
+let multiplier = 1;
+let comboThreshold = [2, 4, 8, 16];
+
 //Change this to our floor
 let mapUrl = "../images/spruce.png";
 let SHADOW_MAP_WIDTH = 2048, SHADOW_MAP_HEIGHT = 2048;
-const darkMaterial = new THREE.MeshBasicMaterial( { color: "black" } );
+const darkMaterial = new THREE.MeshBasicMaterial({ color: "black" });
 const ENTIRE_SCENE = 0, BLOOM_SCENE = 1;
 
 //let modelUrls = ["../models/gltf/Horse.glb", "../models/gltf/Parrot.glb", "../models/gltf/Stork.glb", "../models/gltf/Flamingo.glb"];
@@ -107,17 +116,18 @@ var song = {
     obstacles: [{ "_time": 19.921875, "_duration": 6, "_type": 0, "_lineIndex": 0, "_width": 1 }, { "_time": 27.921875, "_duration": 4, "_type": 0, "_lineIndex": 3, "_width": 1 }, { "_time": 35.921875, "_duration": 2, "_type": 1, "_lineIndex": 0, "_width": 4 }, { "_time": 67.921875, "_duration": 0.25, "_type": 1, "_lineIndex": 0, "_width": 4 }]
 }
 
-function main() 
-{
+function main() {
     const canvas = document.getElementById("webglcanvas");
 
     createScene(canvas);
-    
+
+    //playAudio();
+
     update();
 }
 
 
-function update() 
+function update()
 {
     requestAnimationFrame(function() { update(); });
     if (sableCreated){
@@ -142,11 +152,11 @@ function update()
 }
 
 
-function followRythm(){
-    
-    if (noteFlag && noteIndex < song.notes.length){
+function followRythm() {
+
+    if (noteFlag && noteIndex < song.notes.length) {
         let momentTime = Date.now()
-        let nextNote = song.notes[noteIndex]._time*1000;
+        let nextNote = song.notes[noteIndex]._time * 1000;
         let timeout = (startTime + nextNote - momentTime - lastTimeout);
         noteFlag = false;
         setTimeout(() => {
@@ -156,7 +166,7 @@ function followRythm(){
             let lineNumb = 0;
             let columnNumb = 0;
 
-            switch(line){
+            switch (line) {
                 case 0:
                     lineNumb = -6;
                     break;
@@ -173,7 +183,7 @@ function followRythm(){
                     console.log('Not valid position in line');
             }
 
-            switch(column){
+            switch (column) {
                 case 0:
                     columnNumb = 5;
                     break;
@@ -189,95 +199,93 @@ function followRythm(){
                 default:
                     console.log('Not valid position in column');
             }
-            
+
             createCube(lineNumb, columnNumb, cutDirection);
             //console.log('Timeout: '+ timeout);
             noteFlag = true;
             noteIndex++;
-            
+
         }, timeout);
-    }   
+    }
 }
 
 
-function createScene(canvas) 
-{    
-
-    renderer = new THREE.WebGLRenderer( { canvas: canvas, antialias: true, alpha: false } );
+function createScene(canvas) {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
     renderer.setSize(canvas.width, canvas.height);
 
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    
+
     scene = new THREE.Scene();
 
-    camera = new THREE.PerspectiveCamera( 45, canvas.width / canvas.height, .5, 4000 );
+    camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, .5, 4000);
     camera.position.set(0, 10, 110);
     //camera.position.set(0, 10, 150);
     scene.add(camera);
 
     ///BLOOM
-    
+
     let width = window.innerWidth;
     let height = window.innerHeight;
 
 
-   
+
     bloomLayer = new THREE.Layers();
-    bloomLayer.set( BLOOM_SCENE );
+    bloomLayer.set(BLOOM_SCENE);
 
     renderer.toneMapping = THREE.ReinhardToneMapping;
-    document.body.appendChild( renderer.domElement );
-    bloomComposer = new EffectComposer( renderer );    
+    document.body.appendChild(renderer.domElement);
+    bloomComposer = new EffectComposer(renderer);
 
-    bloomComposer .setSize(
+    bloomComposer.setSize(
         window.innerWidth * window.devicePixelRatio,
         window.innerHeight * window.devicePixelRatio
-      );
-    const renderPass = new RenderPass( scene, camera );
-    bloomComposer.addPass( renderPass );
+    );
+    const renderPass = new RenderPass(scene, camera);
+    bloomComposer.addPass(renderPass);
 
-    const bloomPass = new UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+    const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
     bloomPass.threshold = params.bloomThreshold;
     bloomPass.strength = params.bloomStrength;
     bloomPass.radius = params.bloomRadius;
-  
+
 
     console.log("BLOOOOOOOOOOOOMMMMMMMMMMM")
     console.log(bloomPass);
-    
+
     bloomComposer.renderToScreen = false;
     bloomComposer.addPass(bloomPass);
 
-    
+
     const finalPass = new ShaderPass(
-        new THREE.ShaderMaterial( {
+        new THREE.ShaderMaterial({
             uniforms: {
                 baseTexture: { value: null },
                 bloomTexture: { value: bloomComposer.renderTarget2.texture }
             },
-            vertexShader: document.getElementById( 'vertexshader' ).textContent,
-            fragmentShader: document.getElementById( 'fragmentshader' ).textContent,
+            vertexShader: document.getElementById('vertexshader').textContent,
+            fragmentShader: document.getElementById('fragmentshader').textContent,
             defines: {}
-        } ), "baseTexture"
+        }), "baseTexture"
     );
     finalPass.needsSwap = true;
-    finalComposer = new EffectComposer( renderer );
-    finalComposer.addPass( renderPass );
-    finalComposer.setSize( width, height );
-    finalComposer.addPass( finalPass );
+    finalComposer = new EffectComposer(renderer);
+    finalComposer.addPass(renderPass);
+    finalComposer.setSize(width, height);
+    finalComposer.addPass(finalPass);
     ///TERMINA BLOOM
 
 
 
     root = new THREE.Object3D;
 
-    spotLight = new THREE.SpotLight (0xffffff);
+    spotLight = new THREE.SpotLight(0xffffff);
     spotLight.position.set(0, 20, 150);
     spotLight.target.position.set(0, -100, -60);
     root.add(spotLight);
 
-    
+
     spotLight.castShadow = true;
     spotLight.shadow.camera.near = 1;
     spotLight.shadow.camera.far = 200;
@@ -286,9 +294,9 @@ function createScene(canvas)
     spotLight.shadow.mapSize.width = SHADOW_MAP_WIDTH;
     spotLight.shadow.mapSize.height = SHADOW_MAP_HEIGHT;
 
-    ambientLight = new THREE.AmbientLight ( 0xD8BFD8, .35);
+    ambientLight = new THREE.AmbientLight(0xD8BFD8, .35);
     root.add(ambientLight);
-    
+
 
     group = new THREE.Object3D;
     root.add(group);
@@ -302,14 +310,17 @@ function createScene(canvas)
 
     let texture = new THREE.TextureLoader().load('../images/companionCube.png');
     material = new THREE.MeshPhongMaterial({ map: texture });
-    
-    createEnvironment(objectList,scene)
+
+    createEnvironment(objectList, scene)
 
     raycaster = new THREE.Raycaster();
     raycaster.far = 20;
     raycaster.layers.enable(BLOOM_SCENE)
 
     document.addEventListener('pointermove', onDocumentPointerMove);
+    scoreReference = document.getElementById("scorePoints");
+    comboReference = document.getElementById("streakPoints");
+
 
 
     scene.add( root );
@@ -319,20 +330,20 @@ function createScene(canvas)
 }
 
 function createLine(scene){
-  
-    //let arrow = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000) 
+
+    //let arrow = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000)
     //arrow.layers.enable(BLOOM_SCENE)
 
     //const geometry = new THREE.CylinderGeometry( .01, .01, 1, 32 );
 
     //const material = new THREE.MeshBasicMaterial( {color: 0xffff00} );
-    
+
     cylinder = new THREE.Mesh(new THREE.BoxBufferGeometry(), new THREE.MeshNormalMaterial());
     cylinder.scale.set(.2,.2,40)
     cylinder.position.x = 0
     cylinder.position.y = 9
     cylinder.position.z = 109
-    
+
     planeDetector = new THREE.Plane(new THREE.Vector3(0, 0, 1), 8);
     //planeDetector.position.z = 90
     //planeDetector.position.y = 10
@@ -356,7 +367,7 @@ function createLine(scene){
     sableCreated = false;
 
     scene.add( cylinder );
-    //scene.add(arrow);    
+    //scene.add(arrow);
 }
 
 function updateLine(){
@@ -374,15 +385,15 @@ function updateLine(){
 
     var velX = xCoor - pointOfIntersection.x
     var velY = yCoor - pointOfIntersection.y
-    xCoor= pointOfIntersection.x 
+    xCoor= pointOfIntersection.x
     yCoor= pointOfIntersection.y
-    
-    //console.log(sable.getLinearVelocity())    
+
+    //console.log(sable.getLinearVelocity())
     sable.setLinearVelocity( new Ammo.btVector3(0,0,0));
     sable.setAngularVelocity( new Ammo.btVector3(-velY * 1.0,velX * 1.0,0) );
 }
 
-function animate(){
+function animate() {
     const now = Date.now();
     const deltat = now - currentTime;
     currentTime = now;
@@ -393,24 +404,25 @@ function animate(){
         if (rig.position.z > 130){
             rigidBodies.remove(rig)
         }else{
-            console.log(rig.position.z)            
+            console.log(rig.position.z)
             rig.position.z += 0.3 * deltat;
-            console.log(rig.position.z)            
+            console.log(rig.position.z)
 
         }
     }
     */
 
-    
-    for (const cube of cubes.children){
-        if (cube.position.z > 130){
+    for (const cube of cubes.children) {
+        if (cube.position.z > 130) {
             cubes.remove(cube);
-            //console.log(cubes.children.length);
-        }else{
+            multiplier = 1;
+            combo = 0;
+            comboReference.innerHTML = combo + "X";
+        } else {
             cube.position.z += 0.03 * deltat;
         }
     }
-    
+
    /*
     for (const threeObject of rigidBodies.children){
         if (threeObject.position.z > 130){
@@ -438,14 +450,14 @@ async function createCube(x,y, cutDirection) {
     shape.setMargin( margin );
     const quat = new THREE.Quaternion();
     quat.set( 0, 0, 0, 1 );
-    
+
 
     createRigidBody( cube, shape, mass, cube.position, quat );
 
     cubes.add(cube);
     */
 
-   
+
     const pos = new THREE.Vector3();
     const quat = new THREE.Quaternion();
     pos.set( x, y, 30 );
@@ -477,14 +489,19 @@ async function createCube(x,y, cutDirection) {
     object.position.x = x;
     object.position.y = y;
     object.position.z = 30;
-   
+
     object.name = "objCube";
     cubes.add(object);*/
-   
+
 }
 
-async function loadFloor(objModelUrl, objectList)
-{
+
+function playAudio(){
+    var audio = new Audio("../songs/Snow Halation.mp3");
+    audio.play();
+}
+
+async function loadFloor(objModelUrl, objectList) {
     try {
         console.log("loading floor")
         const object = await new OBJLoader().loadAsync(objModelUrl.obj, onProgress, onError);
@@ -506,7 +523,7 @@ async function loadFloor(objModelUrl, objectList)
 
             }
         });
-        object.scale.set(30,7, 30);
+        object.scale.set(30, 7, 30);
         object.position.z = -100;
         object.position.x = 0;
         object.rotation.y = 0;
@@ -526,107 +543,118 @@ async function loadFloor(objModelUrl, objectList)
 
 }
 
-async function loadObjMtl(objModelUrl, objectList,x,y,z)
-{
-    try
-    {
+async function loadObjMtl(objModelUrl, objectList, x, y, z) {
+    try {
         const mtlLoader = new MTLLoader();
 
         const materials = await mtlLoader.loadAsync(objModelUrl.mtl, onProgress, onError);
 
         materials.preload();
-        
+
         const objLoader = new OBJLoader();
 
         objLoader.setMaterials(materials);
         const object = await objLoader.loadAsync(objModelUrl.obj, onProgress, onError);
-    
+
         object.traverse(function (child) {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
             }
         });
-        
+
         object.position.x = x;
         object.rotation.y = y;
         object.position.z = z;
-        object.scale.set(10,10, 10);
+        object.scale.set(10, 10, 10);
 
         objectList.push(object);
         scene.add(object);
     }
-    catch (err){
+    catch (err) {
         onError(err);
     }
 }
 
-function onError ( err ){ console.error( err ); };
-function onProgress( xhr ) {
+function onError(err) { console.error(err); };
+function onProgress(xhr) {
 
-    if ( xhr.lengthComputable ) {
+    if (xhr.lengthComputable) {
 
         const percentComplete = xhr.loaded / xhr.total * 100;
-        console.log( xhr.target.responseURL, Math.round( percentComplete, 2 ) + '% downloaded' );
+        console.log(xhr.target.responseURL, Math.round(percentComplete, 2) + '% downloaded');
     }
 }
 
-function onDocumentPointerMove( event ) 
-{
-    mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-    mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-    
-    raycaster.setFromCamera( mouse, camera );
+function onDocumentPointerMove(event) {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
 
-    const intersects = raycaster.intersectObjects( cubes.children , true);
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(cubes.children, true);
 
     let positionX = null;
     let positionY = null
 
-    if(mouse.x <= lastPositionx){
+    if (mouse.x <= lastPositionx) {
         positionX = 0;
-    }else{
+    } else {
         positionX = 1;
     }
 
-    if(mouse.y <= lastPositiony){
+    if (mouse.y <= lastPositiony) {
         positionY = 2;
-    }else{
+    } else {
         positionY = 3;
     }
 
-    if ( intersects.length > 0 ) 
-    {
+    if (intersects.length > 0) {
         console.log(intersects.length);
-        if ( intersected != intersects[ 0 ].object ) 
-        {
-            if ( intersected )
+        if (intersected != intersects[0].object) {
+            if (intersected)
                 console.log("Circumscision");
 
-            intersected = intersects[ 0 ].object;
+            intersected = intersects[0].object;
             console.log(intersected);
-            if (intersected.direction < 2){
-                if (intersected.direction == positionX){
+            if (intersected.direction < 2) {
+                if (intersected.direction == positionX) {
                     console.log("Good job");
-                }else{
-                    console.log("Wrong direction")
-                }
-            }else{
-                if (intersected.direction == positionY){
-                    console.log("Good job");
-                }else{
+                    combo ++;
+                    if (comboThreshold.includes(combo)){
+                        multiplier *= 2;
+                    }
+                    score += 1 * multiplier;
+                    comboReference.innerHTML = combo + "X";
+                    scoreReference.innerHTML = score;
+                } else {
                     console.log("Wrong direction");
+                    multiplier = 1;
+                    combo = 0;
+                    comboReference.innerHTML = combo + "X";
+                }
+            } else {
+                if (intersected.direction == positionY) {
+                    console.log("Good job");
+                    combo ++;
+                    if (comboThreshold.includes(combo)){
+                        multiplier *= 2;
+                    }
+                    score += 1 * multiplier;
+                    comboReference.innerHTML = combo + "X";
+                    scoreReference.innerHTML = score;
+                } else {
+                    console.log("Wrong direction");
+                    multiplier = 1;
+                    combo = 0;
+                    comboReference.innerHTML = combo + "X";
                 }
             }
-
             cubes.remove(intersected);
-            /*intersected.currentHex = intersected.material.emissive.getHex();
-            intersected.material.emissive.set( 0xff0000 );*/
         }
-    } 
-    else 
-    {
-        if ( intersected ) 
+    }
+    else {
+        if (intersected)
             //intersected.material.emissive.set( intersected.currentHex );
             console.log("Entre");
 
@@ -637,47 +665,47 @@ function onDocumentPointerMove( event )
     lastPositiony = mouse.y;
 }
 
-function renderBloom( mask ) {
+function renderBloom(mask) {
 
-    if ( mask === true ) {
-        scene.traverse( darkenNonBloomed );
+    if (mask === true) {
+        scene.traverse(darkenNonBloomed);
         bloomComposer.render();
-        scene.traverse( restoreMaterial );
+        scene.traverse(restoreMaterial);
 
     } else {
 
-        camera.layers.set( BLOOM_SCENE );
+        camera.layers.set(BLOOM_SCENE);
         bloomComposer.render();
-        camera.layers.set( ENTIRE_SCENE );
+        camera.layers.set(ENTIRE_SCENE);
 
     }
 
 }
 
-function darkenNonBloomed( obj ) {
-        
-    if ( obj.isMesh && bloomLayer.test( obj.layers ) === false ) {
+function darkenNonBloomed(obj) {
 
-        materials[ obj.uuid ] = obj.material;
+    if (obj.isMesh && bloomLayer.test(obj.layers) === false) {
+
+        materials[obj.uuid] = obj.material;
         obj.material = darkMaterial;
-        
-    }
-
-}
-
-function restoreMaterial( obj ) {
-
-    if ( materials[ obj.uuid ] ) {
-
-        obj.material = materials[ obj.uuid ];
-        delete materials[ obj.uuid ];
 
     }
 
 }
-function disposeMaterial( obj ) {
 
-    if ( obj.material ) {
+function restoreMaterial(obj) {
+
+    if (materials[obj.uuid]) {
+
+        obj.material = materials[obj.uuid];
+        delete materials[obj.uuid];
+
+    }
+
+}
+function disposeMaterial(obj) {
+
+    if (obj.material) {
 
         obj.material.dispose();
 
@@ -706,7 +734,7 @@ function setupPhysicsWorld(){
 
     } );
 
-    
+
 }
 function createRigidBody( threeObject, physicsShape, mass, pos, quat, vel, angVel ) {
 
@@ -913,7 +941,7 @@ function updatePhysics( deltaTime ) {
             //console.log(objThree)
             ms.getWorldTransform( transformAux1 );
             const p = transformAux1.getOrigin();
-            const q = transformAux1.getRotation();          
+            const q = transformAux1.getRotation();
             objThree.position.set( p.x(), p.y(), p.z());
             objThree.quaternion.set( q.x(), q.y(), q.z(), q.w() );
             objThree.userData.collided = false;
@@ -1105,7 +1133,7 @@ function resize()
 
 window.onload = () => {
     main()
-    resize(); 
+    resize();
 };
 
 window.addEventListener('resize', resize, false);
