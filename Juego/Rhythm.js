@@ -86,8 +86,10 @@ const objectsToRemove = [];
 let numObjectsToRemove = 0;
 let tempBtVec3_1;
 
-let xCoor = 0;
-let yCoor = 0;
+let velX = 0;
+let velY = 0;
+
+let theBroken= []
 
 const convexBreaker = new ConvexObjectBreaker();
 
@@ -120,6 +122,8 @@ function main() {
     const canvas = document.getElementById("webglcanvas");
 
     createScene(canvas);
+    
+
 
     //playAudio();
 
@@ -222,6 +226,7 @@ function createScene(canvas) {
     camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, .5, 4000);
     camera.position.set(0, 10, 110);
     //camera.position.set(0, 10, 150);
+
     scene.add(camera);
 
     ///BLOOM
@@ -370,14 +375,16 @@ function createLine(scene){
     //scene.add(arrow);
 }
 
+
+
 function updateLine(){
     //console.log(raycaster.ray.direction.x * 180 /Math.PI)
     //console.log(raycaster.ray.direction.y * 180 /Math.PI)
     //console.log(raycaster.ray.direction.z * 180 /Math.PI)
     //console.log(raycaster.ray.direction)
+    /*
     const canvas = document.getElementById("webglcanvas");
 
-    canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock || canvas.webkitRequestPointerLock;
 
 
     var pointOfIntersection = new THREE.Vector3();
@@ -385,12 +392,18 @@ function updateLine(){
 
     var velX = xCoor - pointOfIntersection.x
     var velY = yCoor - pointOfIntersection.y
+    
     xCoor= pointOfIntersection.x
     yCoor= pointOfIntersection.y
-
+*/
     //console.log(sable.getLinearVelocity())
+
+
+
     sable.setLinearVelocity( new Ammo.btVector3(0,0,0));
-    sable.setAngularVelocity( new Ammo.btVector3(-velY * 1.0,velX * 1.0,0) );
+    sable.setAngularVelocity( new Ammo.btVector3(-velY * 75.0,velX * 75.0,0) );
+    velX = 0;
+    velY = 0;
 }
 
 function animate() {
@@ -589,78 +602,12 @@ function onProgress(xhr) {
 function onDocumentPointerMove(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
+    
 
-    raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObjects(cubes.children, true);
-
-    let positionX = null;
-    let positionY = null
-
-    if (mouse.x <= lastPositionx) {
-        positionX = 0;
-    } else {
-        positionX = 1;
-    }
-
-    if (mouse.y <= lastPositiony) {
-        positionY = 2;
-    } else {
-        positionY = 3;
-    }
-
-    if (intersects.length > 0) {
-        console.log(intersects.length);
-        if (intersected != intersects[0].object) {
-            if (intersected)
-                console.log("Circumscision");
-
-            intersected = intersects[0].object;
-            console.log(intersected);
-            if (intersected.direction < 2) {
-                if (intersected.direction == positionX) {
-                    console.log("Good job");
-                    combo ++;
-                    if (comboThreshold.includes(combo)){
-                        multiplier *= 2;
-                    }
-                    score += 1 * multiplier;
-                    comboReference.innerHTML = combo + "X";
-                    scoreReference.innerHTML = score;
-                } else {
-                    console.log("Wrong direction");
-                    multiplier = 1;
-                    combo = 0;
-                    comboReference.innerHTML = combo + "X";
-                }
-            } else {
-                if (intersected.direction == positionY) {
-                    console.log("Good job");
-                    combo ++;
-                    if (comboThreshold.includes(combo)){
-                        multiplier *= 2;
-                    }
-                    score += 1 * multiplier;
-                    comboReference.innerHTML = combo + "X";
-                    scoreReference.innerHTML = score;
-                } else {
-                    console.log("Wrong direction");
-                    multiplier = 1;
-                    combo = 0;
-                    comboReference.innerHTML = combo + "X";
-                }
-            }
-            cubes.remove(intersected);
-        }
-    }
-    else {
-        if (intersected)
-            //intersected.material.emissive.set( intersected.currentHex );
-            console.log("Entre");
-
-        intersected = null;
-    }
-
+    velX = lastPositionx - mouse.x 
+    velY = lastPositiony - mouse.y 
+    //console.log("mouse", lastPositionx - mouse.x, lastPositiony - mouse.y)
+    //updateLine(lastPositiony-mouse.x, lastPositiony - mouse.y)
     lastPositionx = mouse.x;
     lastPositiony = mouse.y;
 }
@@ -979,6 +926,7 @@ function updatePhysics( deltaTime ) {
 
         let contact = false;
         let maxImpulse = 0;
+        
         for ( let j = 0, jl = contactManifold.getNumContacts(); j < jl; j ++ ) {
 
             const contactPoint = contactManifold.getContactPoint( j );
@@ -1014,8 +962,9 @@ function updatePhysics( deltaTime ) {
         if ( breakable0 && ! collided0 && maxImpulse > fractureImpulse ) {
 
             const debris = convexBreaker.subdivideByImpact( threeObject0, impactPoint, impactNormal, 1, 2, 1.5 );
-
             const numObjects = debris.length;
+            
+          
             for ( let j = 0; j < numObjects; j ++ ) {
 
                 const vel = rb0.getLinearVelocity();
@@ -1023,12 +972,13 @@ function updatePhysics( deltaTime ) {
                 const fragment = debris[ j ];
                 fragment.userData.velocity.set( vel.x(), vel.y(), vel.z() );
                 fragment.userData.angularVelocity.set( angVel.x(), angVel.y(), angVel.z() );
-
-                createDebrisFromBreakableObject( fragment );
+               
+                createDebrisFromBreakableObjectDebris( fragment );
 
             }
 
             objectsToRemove[ numObjectsToRemove ++ ] = threeObject0;
+           
             userData0.collided = true;
 
         }
@@ -1036,8 +986,8 @@ function updatePhysics( deltaTime ) {
         if ( breakable1 && ! collided1 && maxImpulse > fractureImpulse ) {
 
             const debris = convexBreaker.subdivideByImpact( threeObject1, impactPoint, impactNormal, 1, 2, 1.5 );
-
             const numObjects = debris.length;
+           
             for ( let j = 0; j < numObjects; j ++ ) {
 
                 const vel = rb1.getLinearVelocity();
@@ -1045,12 +995,13 @@ function updatePhysics( deltaTime ) {
                 const fragment = debris[ j ];
                 fragment.userData.velocity.set( vel.x(), vel.y(), vel.z() );
                 fragment.userData.angularVelocity.set( angVel.x(), angVel.y(), angVel.z() );
-
-                createDebrisFromBreakableObject( fragment );
+               
+                createDebrisFromBreakableObjectDebris( fragment );
 
             }
 
             objectsToRemove[ numObjectsToRemove ++ ] = threeObject1;
+           
             userData1.collided = true;
 
         }
@@ -1058,7 +1009,7 @@ function updatePhysics( deltaTime ) {
     }
 
     for ( let i = 0; i < numObjectsToRemove; i ++ ) {
-
+        
         removeDebris( objectsToRemove[ i ] );
 
     }
@@ -1067,7 +1018,7 @@ function updatePhysics( deltaTime ) {
 
 }
 function createObject( mass, halfExtents, pos, quat, material ) {
-    const object = new THREE.Mesh( new THREE.BoxGeometry( halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2 ), material );
+    let object = new THREE.Mesh( new THREE.BoxGeometry( halfExtents.x * 2, halfExtents.y * 2, halfExtents.z * 2 ), material );
     object.position.copy( pos );
     object.quaternion.copy( quat );
     convexBreaker.prepareBreakableObject( object, mass, new THREE.Vector3(), new THREE.Vector3(), true );
@@ -1075,22 +1026,48 @@ function createObject( mass, halfExtents, pos, quat, material ) {
 
 
 }
+
+
 function createDebrisFromBreakableObject( object ) {
-    console.log("debris")
+    //object.material = material;
     object.castShadow = true;
     object.receiveShadow = true;
-
     const shape = createConvexHullPhysicsShape( object.geometry.attributes.position.array );
     shape.setMargin( margin );
-
     const body = createRigidBody2( object, shape, object.userData.mass, null, null, object.userData.velocity, object.userData.angularVelocity );
-
     // Set pointer back to the three object only in the debris objects
     const btVecUserData = new Ammo.btVector3( 0, 0, 0 );
     btVecUserData.threeObject = object;
     body.setUserPointer( btVecUserData );
 
 }
+
+function createDebrisFromBreakableObjectDebris( object ) {
+    score++
+    scoreReference.innerHTML = score
+    const color2 = new THREE.Color( 1, 0, 0 );
+   // material = new THREE.MeshPhongMaterial( {#} );
+
+    if (color2.r !== object.material.color.r && color2.g !== object.material.color.g && color2.b !== object.material.color.b){
+        console.log("PRIMERO")
+        combo++
+        comboReference.innerHTML = combo
+    }
+    object.material.color.setHex(0xff0000);
+
+
+    object.castShadow = true;
+    object.receiveShadow = true;
+    const shape = createConvexHullPhysicsShape( object.geometry.attributes.position.array );
+    shape.setMargin( margin );
+    const body = createRigidBody2( object, shape, object.userData.mass, null, null, object.userData.velocity, object.userData.angularVelocity );
+    // Set pointer back to the three object only in the debris objects
+    const btVecUserData = new Ammo.btVector3( 0, 0, 0 );
+    btVecUserData.threeObject = object;
+    body.setUserPointer( btVecUserData );
+
+}
+
 
 function removeDebris( object ) {
 
