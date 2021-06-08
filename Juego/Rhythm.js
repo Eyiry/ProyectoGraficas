@@ -33,6 +33,7 @@ let lastTimeout = 0;
 
 let noteIndex = 0;
 let noteFlag = true;
+let finishFlag = false;
 
 let currentTime = Date.now();
 let spotLight = null, ambientLight = null;
@@ -123,8 +124,6 @@ function main() {
 
     createScene(canvas);
     
-
-
     //playAudio();
 
     update();
@@ -210,6 +209,11 @@ function followRythm() {
             noteIndex++;
 
         }, timeout);
+    }else if(noteIndex >= song.notes.length && finishFlag == false){
+        finishFlag = true;
+        setTimeout(()=>{
+            window.location = '/Juego/ScoreScreen.html?score='+ score;
+        }, 3000)
     }
 }
 
