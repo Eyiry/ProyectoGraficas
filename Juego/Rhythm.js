@@ -17,6 +17,7 @@ import { Pass } from '../three.js/examples/jsm/postprocessing/Pass.js';
 
 import { ConvexGeometry } from '../three.js/examples/jsm/geometries/ConvexGeometry.js';
 import { ConvexObjectBreaker } from '../three.js/examples/jsm/misc/ConvexObjectBreaker.js';
+import { PointerLockControls } from '../three.js/examples/jsm/controls/PointerLockControls.js';
 
 ///https://github.com/mrdoob/three.js/blob/master/examples/jsm/postprocessing/UnrealBloomPass.js
 
@@ -87,6 +88,11 @@ const objectsToRemove = [];
 let numObjectsToRemove = 0;
 let tempBtVec3_1;
 
+let controls;
+let cameraVector;
+let lastCameraVector;
+
+
 let velX = 0;
 let velY = 0;
 
@@ -146,11 +152,15 @@ function update()
     //console.log(camera.position)
     //console.log("raycaster direction", raycaster.ray.direction, "origin", raycaster.ray.origin)
     //console.log(cylinder.position)
-    updateLine()
+
     const deltaTime = clock.getDelta();
     //console.log(physicsWorld.)
     finalComposer.render();
     updatePhysics( deltaTime );
+    updateLine()
+
+
+
 
 }
 
@@ -210,10 +220,10 @@ function followRythm() {
 
         }, timeout);
     }else if(noteIndex >= song.notes.length && finishFlag == false){
-        finishFlag = true;
-        setTimeout(()=>{
-            window.location = '/Juego/ScoreScreen.html?score='+ score;
-        }, 3000)
+        //finishFlag = true;
+        //setTimeout(()=>{
+            //window.location = '/Juego/ScoreScreen.html?score='+ score;
+        //}, 3000)
     }
 }
 
@@ -329,14 +339,49 @@ function createScene(canvas) {
     document.addEventListener('pointermove', onDocumentPointerMove);
     scoreReference = document.getElementById("scorePoints");
     comboReference = document.getElementById("streakPoints");
+    
+    let camera2
+    camera2 = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, .5, 4000);
+    camera2.position.set(0, 10, 110);
 
 
 
+    controls = new PointerLockControls( camera2, document.body,sable );
+    const blocker = document.getElementById( 'blocker' );
+    const instructions = document.getElementById( 'instructions' )
+
+    instructions.addEventListener( 'click', function () {
+
+        controls.lock();
+
+    } );
+
+    controls.addEventListener( 'lock', function () {
+
+        instructions.style.display = 'none';
+        blocker.style.display = 'none';
+
+    } );
+
+    controls.addEventListener( 'unlock', function () {
+
+        blocker.style.display = 'block';
+        instructions.style.display = '';
+
+    } );
+    cameraVector = new THREE.Vector3( 1, 0, 1 );
+    lastCameraVector = new THREE.Vector3(1,0,1);
+
+    scene.add( controls.getObject() );
+
+    
+    
     scene.add( root );
     setupPhysicsWorld()
 
 
 }
+
 
 function createLine(scene){
 
@@ -402,10 +447,13 @@ function updateLine(){
 */
     //console.log(sable.getLinearVelocity())
 
-
-
     sable.setLinearVelocity( new Ammo.btVector3(0,0,0));
-    sable.setAngularVelocity( new Ammo.btVector3(-velY * 75.0,velX * 75.0,0) );
+//  sable.setAngularVelocity( new Ammo.btVector3(-velY * 75.0,velX * 75.0,0) );
+    //sable.applyTorque( cameraVector * 10)
+    sable.setAngularVelocity( new Ammo.btVector3(velY/5  , velX/5,0));
+    //sable.applyTorque(new Ammo.btVector3(velY,0,0))
+    //sable.quaterniona.setFromEuler()
+    
     velX = 0;
     velY = 0;
 }
@@ -428,7 +476,8 @@ function animate() {
         }
     }
     */
-
+    
+    
     for (const cube of cubes.children) {
         if (cube.position.z > 130) {
             cubes.remove(cube);
@@ -481,8 +530,10 @@ async function createCube(x,y, cutDirection) {
     quat.set( 0, 0, 0, 1 );
     const towerMass = 1000;
     const towerHalfExtents = new THREE.Vector3( 1.5, 1.5, 1.5 );
-    createObject( towerMass, towerHalfExtents, pos, quat, createMaterial( 0xB03014 ) );
-    console.log("crea cubito")
+
+
+    createObject( towerMass, towerHalfExtents, pos, quat, createMaterial(cutDirection) );
+    console.log("crea cubito", cutDirection)
 
 
 
@@ -604,16 +655,21 @@ function onProgress(xhr) {
 }
 
 function onDocumentPointerMove(event) {
+
+    //console.log("mousemove")
+   
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = - (event.clientY / window.innerHeight) * 2 + 1;
     
+    const movementX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+	const movementY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
 
-    velX = lastPositionx - mouse.x 
-    velY = lastPositiony - mouse.y 
-    //console.log("mouse", lastPositionx - mouse.x, lastPositiony - mouse.y)
-    //updateLine(lastPositiony-mouse.x, lastPositiony - mouse.y)
-    lastPositionx = mouse.x;
-    lastPositiony = mouse.y;
+    velX = lastPositionx - movementX
+    velY = lastPositiony - movementY
+
+    lastPositionx = mouse.x
+    lastPositiony = mouse.y
+    //updateLine()
 }
 
 function renderBloom(mask) {
@@ -847,9 +903,23 @@ function createRandomColor() {
 
 }
 
-function createMaterial() {
+function createMaterial(cutDirection) {
 
-    return new THREE.MeshPhongMaterial( { color: createRandomColor() } );
+    switch (cutDirection) {
+        case 0:
+            //green
+            return new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(0, 255, 0)") } );
+        case 1:
+            //yellow
+            return new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(255, 255, 0)") } );
+        case 2:
+            //purple
+            return new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(128,0, 128)") } );
+        case 3:
+            //orange
+            return new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(255, 69, 0)") } );
+    }
+
 
 }
 
@@ -1052,12 +1122,85 @@ function createDebrisFromBreakableObjectDebris( object ) {
     const color2 = new THREE.Color( 1, 0, 0 );
    // material = new THREE.MeshPhongMaterial( {#} );
 
-    if (color2.r !== object.material.color.r && color2.g !== object.material.color.g && color2.b !== object.material.color.b){
-        console.log("PRIMERO")
-        combo++
-        comboReference.innerHTML = combo
+    const green =  new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(0, 255, 0)")});
+    const yellow = new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(255 , 255 , 0)")});
+    const purple = new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(128 , 0 , 128)")});
+    const orange = new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(255 , 69 , 0)")});
+
+    const red = new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(255 , 0 , 0)")});
+    const blue = new THREE.MeshPhongMaterial( {color: new THREE.Color("rgb(0 , 0 , 255)")});
+
+
+    let direction;
+    
+    let absX = Math.abs(velX)
+    let absY = Math.abs(velY)
+    
+
+    if (absX > absY){
+        if (velX > 0) {
+            direction = "right"
+        }else{
+            direction = "left"
+        }
+    }else{
+        if (velY > 0){
+            direction = "up"
+        }else{
+            direction = "down"
+        }
     }
-    object.material.color.setHex(0xff0000);
+    //console.log(direction, velX, velY)
+    //console.log(object.material.color)
+    let r = object.material.color.r;
+    let g = object.material.color.g;
+    let b = object.material.color.b
+    switch (direction){
+        case "right":
+           
+            //console.log("rgb")
+            //console.log(r,g,b)   
+            //console.log(green.color.r, green.color.g, green.color.b)
+            //console.log(object.material.color)
+            if (r == green.color.r && g == green.color.g && b == green.color.b){
+                console.log("PRIMERO", direction)
+                combo++
+                comboReference.innerHTML = combo
+                object.material.color.setHex(0x0000FF);
+            } 
+            
+        case "left":
+            //console.log("rgb")
+            //console.log(r,g,b)   
+            //console.log(green.color.r, green.color.g, green.color.b)
+            //console.log(object.material.color)
+            if (r == yellow.color.r && g == yellow.color.g && b == yellow.color.b){
+                console.log("PRIMERO", direction)
+                combo++
+                comboReference.innerHTML = combo
+                object.material.color.setHex(0x0000FF);
+            }
+        
+        case "up":
+            if (r == purple.color.r && g == purple.color.g && b == purple.color.b){
+                console.log("PRIMERO", direction)
+                combo++
+                comboReference.innerHTML = combo
+                object.material.color.setHex(0x0000FF);
+            }
+        case "down":
+            if (r == orange.color.r && g == orange.color.g && b == orange.color.b){
+                console.log("PRIMERO", direction)
+                combo++
+                comboReference.innerHTML = combo
+                object.material.color.setHex(0x0000FF);
+            }
+
+
+    }
+
+    
+
 
 
     object.castShadow = true;
@@ -1099,6 +1242,9 @@ function createConvexHullPhysicsShape( coords ) {
 
 
 
+
+
+
 function resize()
 {
     const canvas = document.getElementById("webglcanvas");
@@ -1118,3 +1264,4 @@ window.onload = () => {
 };
 
 window.addEventListener('resize', resize, false);
+
