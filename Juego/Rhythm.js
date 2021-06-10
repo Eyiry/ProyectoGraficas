@@ -7,7 +7,7 @@ import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
 //import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
 import { createEnvironment } from './createMap.js';
-import { getSong } from './snowHalation.js';
+import { getSong } from './roads.js';
 
 import { EffectComposer } from '../three.js/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.js';
@@ -133,7 +133,7 @@ function main() {
 
     createScene(canvas);
     
-    //playAudio();
+    playAudio();
 
     update();
 }
@@ -173,8 +173,9 @@ function followRythm() {
     if (noteFlag && noteIndex < song.notes.length) {
         let momentTime = Date.now()
         let nextNote = song.notes[noteIndex]._time * 1000;
-        let timeout = (startTime + nextNote - momentTime - lastTimeout);
+        let timeout = (startTime + nextNote - momentTime - lastTimeout)/2;
         noteFlag = false;
+        console.log(nextNote)
         setTimeout(() => {
             let line = song.notes[noteIndex]._lineIndex;
             let column = song.notes[noteIndex]._lineLayer;
@@ -223,10 +224,10 @@ function followRythm() {
 
         }, timeout);
     }else if(noteIndex >= song.notes.length && finishFlag == false){
-        //finishFlag = true;
-        //setTimeout(()=>{
-            //window.location = '/Juego/ScoreScreen.html?score='+ score;
-        //}, 3000)
+        finishFlag = true;
+        setTimeout(()=>{
+            window.location = '/Juego/ScoreScreen.html?score='+ score;
+        }, 3000)
     }
 }
 
@@ -566,9 +567,9 @@ async function createCube(x,y, cutDirection) {
 
 }
 
-
 function playAudio(){
-    var audio = new Audio("../songs/Snow Halation.mp3");
+    var audio = new Audio("../songs/John Denver - Take Me Home, Country Roads.mp3");
+    audio.volume = .25
     audio.play();
 }
 
