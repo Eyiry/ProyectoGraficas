@@ -7,6 +7,7 @@ import { OBJLoader } from '../three.js/examples/jsm/loaders/OBJLoader.js';
 //import { MTLLoader } from '../libs/three.js/r125/loaders/MTLLoader.js';
 
 import { createEnvironment } from './createMap.js';
+import { getSong } from './snowHalation.js';
 
 import { EffectComposer } from '../three.js/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from '../three.js/examples/jsm/postprocessing/RenderPass.js';
@@ -109,7 +110,7 @@ const params = {
 
 
 
-var song = {
+/*var song = {
     events: [],
     notes: [{ "_time": 3.9270829999999997, "_lineIndex": 2, "_lineLayer": 2, "_type": 1, "_cutDirection": 0 },
     { "_time": 5.927083, "_lineIndex": 3, "_lineLayer": 1, "_type": 1, "_cutDirection": 3 },
@@ -117,7 +118,9 @@ var song = {
     { "_time": 9.927083, "_lineIndex": 0, "_lineLayer": 1, "_type": 0, "_cutDirection": 3 },
     { "_time": 11.927083, "_lineIndex": 0, "_lineLayer": 0, "_type": 0, "_cutDirection": 1 }],
     obstacles: [{ "_time": 19.921875, "_duration": 6, "_type": 0, "_lineIndex": 0, "_width": 1 }, { "_time": 27.921875, "_duration": 4, "_type": 0, "_lineIndex": 3, "_width": 1 }, { "_time": 35.921875, "_duration": 2, "_type": 1, "_lineIndex": 0, "_width": 4 }, { "_time": 67.921875, "_duration": 0.25, "_type": 1, "_lineIndex": 0, "_width": 4 }]
-}
+}*/
+
+var song = getSong();
 
 function main() {
     const canvas = document.getElementById("webglcanvas");
@@ -165,7 +168,7 @@ function followRythm() {
         setTimeout(() => {
             let line = song.notes[noteIndex]._lineIndex;
             let column = song.notes[noteIndex]._lineLayer;
-            let cutDirection = song.notes[noteIndex]._cutDirection;
+            let cutDirection = song.notes[noteIndex]._cutDirection % 4;
             let lineNumb = 0;
             let columnNumb = 0;
 
