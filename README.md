@@ -5,7 +5,7 @@ Juego de Ritmo(similar a beat saber con mecánicas más simples)
 
 Requerimentos Funcionales
 
-  -Música atractiva, libre de regalías.
+  -Música atractiva.
   -Capacidad de guardar los beatmaps en un formato fácil de editar. 
   -Mostrar las notas en la pantalla.
   -El jugador puede interactuar con las notas en la pantalla y el juego debe indicar si la interacción fue con el timing correcto y dar una puntuación basándose en este, 
@@ -26,3 +26,8 @@ Plan de trabajo
   -Agregar al escenario post processing como se muestra en los ejemplos
     *https://threejs.org/examples/webgl_postprocessing_rgb_halftone.html
     *https://threejs.org/examples/webgl_postprocessing_unreal_bloom_selective.html
+    
+    
+    
+Para correr se debe clonar el subproyecto de three.js
+git clone --depth=1 https://github.com/mrdoob/three.js.git
